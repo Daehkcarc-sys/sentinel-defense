@@ -1,0 +1,26 @@
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Benchmark outputs and local configuration
+artifacts/
+competition.yaml
+.env
+
+# Hidden evaluation material must never be committed
+scenarios/private/
+private-scenarios/
+
+# Trained weights (declare and ship them in your submission image instead)
+*.joblib
+*.safetensors
+*.bin

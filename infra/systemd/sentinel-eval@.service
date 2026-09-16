@@ -1,0 +1,17 @@
+# Example one-shot evaluation of a defense URL stored in /etc/sentinel/eval-%i.env (DEFENSE_URL=...).
+[Unit]
+Description=SENTINEL evaluation run %i
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=sentinel
+Group=sentinel
+WorkingDirectory=/opt/sentinel-bench
+EnvironmentFile=/etc/sentinel/eval-%i.env
+ExecStart=/opt/sentinel-bench/.venv/bin/sentinel eval private --defense-url ${DEFENSE_URL} --artifacts /var/lib/sentinel/artifacts --json
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/sentinel
