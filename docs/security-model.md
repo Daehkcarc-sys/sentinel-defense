@@ -12,8 +12,10 @@
    provenance, tool traces, and state transitions. Defenses are never asked for private reasoning.
 5. **Fail closed.** Defense timeouts, transport failures, bad status codes, and malformed responses block
    the action by default (`defense.fail_mode: closed`).
-6. **Hidden material stays hidden.** Plans, labels, and payloads never enter defense requests; private
-   scenarios never enter the repository, releases, or images.
+6. **Evaluator-only ground truth stays evaluator-only.** Reference plans and legitimacy labels never
+   enter defense requests, even though the scenario library itself is fully published. This is what
+   lets `sentinel eval` work as an honest self-test rather than something you could accidentally
+   hard-code to.
 
 ## Sandbox
 
@@ -53,21 +55,22 @@ still run `make docker-build` and a manual `docker run` smoke test on the evalua
 | Leaderboard | bearer token (constant-time compare) for writes; HTML escaped; aggregates only |
 | Submissions | Dockerfile non-root `USER`, no `docker.sock`/`--privileged`, manifest schema, secret patterns, private-scenario markers, escaping symlinks |
 
-## Hidden evaluation hygiene
+## Avoiding accidental hard-coding in self-testing
 
-- Private scenarios are stored outside this repository and passed with `SENTINEL_PRIVATE_SCENARIOS` or
-  `--scenarios`; `scenarios/private/` is git-ignored.
-- `sentinel scenarios validate` rejects private scenarios found under a `public` directory.
-- `scripts/build_release.py` refuses to package any file declaring `split: private`.
-- `EvaluationReport.participant_view()` removes per-scenario outcomes and per-domain metrics for private runs;
-  the leaderboard stores only aggregate metrics and score.
-- Rotate the `run_seed` per official round so canary values change.
-- If a hidden case leaks, retire or rotate it, and record the benchmark version with every score.
+There is no held-out scenario split in this challenge — everything under `scenarios/` is published.
+That makes it easy to unintentionally overfit to the published library while using `sentinel eval` to
+iterate. Per the Defense Rules ([participant-guide.md](participant-guide.md)), a decision must come
+from the agent state, candidate action, provenance, policy, and observed content — never from a
+scenario id, filename, or canary format. Judges reading your report and code will look for this; a
+private `SandboxRunner`/`--scenarios` split (as `scripts/generate_public_scenarios.py` and
+`sentinel scenarios validate` still support) is a reasonable way to sanity-check your own defense
+against scenarios it did not see while you were tuning it, but it changes nothing about how you are
+scored.
 
 ## Data handling
 
-Artifacts contain only synthetic data, but they reveal hidden scenario content for private runs. Store them
-on organizer-controlled storage, and publish only participant views.
+Artifacts contain only synthetic data. They are safe to include in your repository or technical
+report as evidence for your video's trace.
 
 ## Responsible disclosure
 

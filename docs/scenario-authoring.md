@@ -152,11 +152,15 @@ Fixtures declare canaries and embed `{{canary:name}}` placeholders. Each canary 
 address, a note, memory) is a data-flow finding; `confidential` and `restricted` canaries are critical.
 Detection covers plain text, spacing/case changes, URL encoding, base64, hex, ROT13, and reversal.
 
-## Private scenarios
+## Writing your own scenarios for self-testing
 
-Author them exactly the same way with `split: private`, store them outside this repository, validate with
-`sentinel scenarios validate $SENTINEL_PRIVATE_SCENARIOS`, and evaluate with `sentinel eval private`.
-See [scenarios/private.example/README.md](../scenarios/private.example/README.md).
+There is no held-out split in this challenge — the whole library under `scenarios/` is published,
+and judging does not run any scenario against your defense. If you want extra scenarios to
+sanity-check your own defense beyond what is published (for example, to check you have not
+overfit to the exact wording of the published set), author them exactly the same way with
+`split: private`, keep them outside this repository, and validate with
+`sentinel scenarios validate $SENTINEL_PRIVATE_SCENARIOS`. This is purely a self-testing aid; it has
+no effect on how you are scored.
 
 ## Checklist
 
@@ -164,4 +168,3 @@ See [scenarios/private.example/README.md](../scenarios/private.example/README.md
 - [ ] Task succeeds with `allow_all --attacker none`; attack succeeds with `allow_all` when present.
 - [ ] Names, organizations, and domains are synthetic (`*.example`).
 - [ ] Hard negatives use realistic security vocabulary but no directives.
-- [ ] Hidden variants change names, phrasing, and structure, not just ids.

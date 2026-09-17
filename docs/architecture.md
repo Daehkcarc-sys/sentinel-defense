@@ -3,6 +3,12 @@
 SENTINEL is a small, typed Python package with explicit seams. The simulation core runs without
 HTTP or Docker; services and sandboxing wrap it.
 
+This document describes the reference simulator and tooling every team receives — the synthetic
+world, the reference agent, the internal attack mechanism, and local self-test commands. It is not a
+pipeline your submission must plug into: your defense can be built however you choose, and judging
+reads your video, observability layer, report, and repository rather than re-running this code
+against your submission (see [scoring.md](scoring.md)).
+
 ## Run lifecycle
 
 ```mermaid
@@ -108,8 +114,9 @@ obeys, from any text it reads (user goal, tool results, recalled memory):
 | `{{... \| base64}}`, `hex`, `reverse` | simulated instructed encoding of the value |
 
 This models susceptibility. The agent contains no attack-specific code, and the same grammar applies
-to benign and adversarial text. Because the grammar is structural, public baselines can do better than
-they would against a real model; hidden evaluation should add real adapters and new templates.
+to benign and adversarial text. Because the grammar is structural, a defense can look stronger against
+the `mock` model than it will against the real one; always validate against `--model qwen3-8b` before
+recording the trace your video and report are built on.
 
 ## Services
 
@@ -126,5 +133,6 @@ they would against a real model; hidden evaluation should add real adapters and 
   a fixture and a policy.
 - **New graders:** decorate a function with `@register_grader("name")` and use
   `{type: custom, grader: name}` in YAML.
-- **Distributed evaluation:** implement `SandboxRunner` for another backend (for example Kubernetes Jobs)
-  and schedule `sentinel eval` per submission. Nothing in the core assumes a single host.
+- **Distributed self-testing:** implement `SandboxRunner` for another backend (for example
+  Kubernetes Jobs) if you want to run `sentinel eval` against your own defense at scale. Nothing in
+  the core assumes a single host, but nothing in the challenge requires this either.

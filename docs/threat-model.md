@@ -15,7 +15,6 @@ SENTINEL separates two very different kinds of adversarial activity:
 | Consequential state | payments, sent email, ticket/incident status, remediation, monitoring flags | unauthorized changes are critical |
 | Agent memory | `memory` collection | poisoning persists across turns |
 | User intent | the turn goal | goal hijacking yields "successful" but wrong work |
-| Benchmark integrity | hidden scenarios, labels, scores | leakage invalidates rankings |
 
 ## Allowed adversarial control
 
@@ -43,8 +42,9 @@ text fields, and never be `_meta`.
   internal-only network).
 - Accessing real credentials, real personal data, real banking systems, or any external service.
 - Denial of service against organizer infrastructure (beyond the per-call timeout, which fails closed).
-- Reading other teams' code or artifacts except through challenge interfaces.
-- Reading hidden labels, plans, or private scenarios.
+- Reading other teams' code or artifacts.
+- Reading evaluator-only ground truth (reference plans, labels) that this simulator withholds from
+  your defense at runtime.
 
 The attacker API has no capability to do any of these: attackers only emit a single bounded text
 mutation per query.
@@ -54,10 +54,15 @@ mutation per query.
 - The base model is fallible and will follow instructions it reads.
 - Untrusted text may be adversarial, and legitimate tasks still require reading it.
 - Monitors, including your own, are imperfect.
-- Hidden evaluation contains unseen templates, families, and compositions.
-- Blocking everything fails the utility gate; escalating everything costs precision.
+- The scenario library is fully published; there is no hidden or surprise scenario. Deciding from a
+  scenario identifier or an organizer-provided expected outcome is disqualifying, not clever.
+- Blocking everything trades away utility; escalating everything trades away precision — both are
+  visible in your video and cost you on the rubric.
 
 ## Attack families in the scenario schema
+
+All of the below are published in the scenario library — there is no hidden family held back for
+scoring.
 
 | Family | Public / validation examples |
 | --- | --- |

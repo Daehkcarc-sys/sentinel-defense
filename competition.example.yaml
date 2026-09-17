@@ -1,6 +1,11 @@
-# SENTINEL competition configuration: EXAMPLE, NOT FINAL.
-# Organizers copy this to competition.yaml (git-ignored) and freeze values before launch.
-name: SENTINEL example configuration (non-final)
+# SENTINEL self-test configuration: EXAMPLE, NOT FINAL, and NOT the official score.
+#
+# Judging is jury-based (see docs/scoring.md): a video demonstration, an observability layer, a
+# technical report, and a repository, scored against a published rubric. Nothing here is read by
+# judges. This file only configures the optional `sentinel eval` / `sentinel arena run` self-test
+# tooling and the composite `compute_score` diagnostic some teams may want while iterating.
+# Organizers or participants who want it can copy this to competition.yaml (git-ignored).
+name: SENTINEL example configuration (non-final, self-test only)
 benchmark_version: sentinel-bench/0.1.0
 run_seed: 0            # combined with each scenario seed; change per official evaluation round
 official_mode: true

@@ -1,39 +1,50 @@
 # SENTINEL: Adaptive Safety for Autonomous AI Agents
 
-SENTINEL is an offline benchmark for the IndabaX Tunisia research challenge. Teams build **defenses**
-that let a tool-using LLM agent finish legitimate work while an adversary manipulates the environment,
-plus bounded **attackers** that search for failures in other teams' defenses.
+SENTINEL is a research challenge for IndabaX Tunisia. Each team builds **one defense solution** —
+built however they choose — that lets a tool-using LLM agent finish legitimate work while an
+adversary manipulates its environment, plus an **observability layer** that makes the defense's
+decisions legible.
 
-It is not a prompt-injection classifier contest. Every run measures the whole safety–utility problem:
-did the agent finish the task, did the attack succeed, did sensitive data leave its allowed
-destinations, and how often did the defense block or escalate legitimate work.
+It is not a prompt-injection classifier contest, and it is not a hidden-test competition. Every
+scenario, attack family, and rule is published up front. SENTINEL is not a hidden-test competition:
+the attacks are known; the challenge is to show how creatively, rigorously, and effectively you can
+engineer an AI agent that survives them.
 
 - Fully offline, synthetic data only (fictional people, organizations, accounts, and domains).
-- Deterministic: the same seed produces byte-identical event logs and the same scorecard digest.
-- Interfaces, not architecture: any defense that speaks the HTTP contract can compete.
-- Default tests run without downloading a model; a Hugging Face adapter is an optional extra.
+- Official reference agent: a preconfigured **Qwen3-8B** (`Qwen/Qwen3-8B`), run locally through this
+  simulator. No required architecture, language, or interface for your defense.
+- Deterministic: the same seed produces byte-identical event logs, so your own replays and report
+  numbers are reproducible.
+- Scoring is jury-judged from your video, observability layer, technical report, and GitHub
+  repository — not an automated benchmark. See [docs/scoring.md](docs/scoring.md).
 
 ## Architecture
 
+This repository is the simulator and reference tooling SENTINEL provides to every team: the
+synthetic world, the attack mechanism that puts pressure on a scenario, the reference agent, and
+local self-test commands. It is scaffolding for building and demonstrating your defense, not a
+pipeline your submission is required to plug into or be judged by.
+
 ```mermaid
 flowchart LR
-    S[Scenario YAML<br/>+ fixture + policy] --> R[Evaluator runner]
+    S[Scenario YAML<br/>+ fixture + policy] --> R[Simulator runner]
     R --> A[Reference agent]
-    M[ModelAdapter<br/>mock / HF] --> A
-    A -- candidate action --> D{Defense<br/>in-process or HTTP}
+    M[ModelAdapter<br/>mock / Qwen3-8B] --> A
+    A -- candidate action --> D{Your defense solution}
     D -- allow / block / escalate / rewrite --> A
     A -- escalate --> H[Simulated human]
     A -- approved tool call --> G[Tool gateway]
     G --> W[(Synthetic world state<br/>enterprise / finance / SOC)]
-    X[Attacker<br/>static / mutation / HTTP] -- mutation --> V[Mutation validator]
+    X[Scenario attack<br/>static / mutation] -- mutation --> V[Mutation validator]
     V -- declared surfaces only --> W
     A --> L[(Append-only JSONL events)]
-    R --> P[Policy engine + leak detector + graders]
-    P --> SC[Metrics + configurable score]
-    SC --> LB[Scorecard / leaderboard]
+    L --> OBS[Your observability layer]
 ```
 
-Details: [docs/architecture.md](docs/architecture.md).
+The "scenario attack" is internal simulator machinery that puts pressure on a scenario the way the
+threat model describes it (see [docs/threat-model.md](docs/threat-model.md)) — it is not something
+you build; your only required deliverable on the attack side of things is the defense that survives
+it, plus the observability layer that shows how. Details: [docs/architecture.md](docs/architecture.md).
 
 ## Quick start
 
@@ -43,98 +54,91 @@ Requires [uv](https://docs.astral.sh/uv/). Python 3.12 is installed by uv if nee
 uv sync                 # or: make setup
 make test               # unit + integration + security tests, then starter-kit tests
 make run-baseline       # one scenario with the provenance baseline, printed as a timeline
-make eval-public        # deterministic public scorecard
 ```
 
-Every command runs offline.
+Every command runs offline. The mock model needs no downloads; running the reference Qwen3-8B agent
+needs `uv sync --extra hf` and the weights downloaded ahead of time.
 
 ## Run a baseline
 
 ```bash
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense allow_all
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance
+uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance --model qwen3-8b
 uv run sentinel replay artifacts/<eval-group>/<run_id>.jsonl
 ```
 
-Baselines: `allow_all`, `deny_sensitive`, `keyword`, `heuristic_risk`, `provenance`.
+Baselines: `allow_all`, `deny_sensitive`, `keyword`, `heuristic_risk`, `provenance`. `--model` selects
+the reference agent's underlying model (`mock` by default, or `qwen3-8b`); `mock` is fast for
+iterating on your decision logic, `qwen3-8b` is what your video and trace should be built on.
 
-## Create a defense
+## Build your defense
 
 ```bash
-cp -r starter-kits/python-defense ../my-defense
-# edit ../my-defense/app/decision.py
+cp -r starter-kits/python-defense ../my-defense   # or: cp -r starter-kits/learned-monitor ../my-defense
+# edit the decision logic
 cd ../my-defense && uv venv && uv pip install -r requirements.txt && uv run uvicorn app.main:app --port 8080
 ```
 
-Then, from this repository:
+Then, from this repository, run it against the reference agent and record the trace your video and
+report are built around:
 
 ```bash
-uv run sentinel eval public --defense-url http://127.0.0.1:8080
-uv run sentinel eval validation --defense-url http://127.0.0.1:8080
-uv run sentinel submission validate ../my-defense
+uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml \
+  --defense-url http://127.0.0.1:8080 --model qwen3-8b
+uv run sentinel replay artifacts/<run_id>.jsonl
 ```
 
 See [docs/participant-guide.md](docs/participant-guide.md) and the starter kits:
 [python-defense](starter-kits/python-defense) and [learned-monitor](starter-kits/learned-monitor).
-Both are optional scaffolding for the one required deliverable: your defense solution.
+Both are optional scaffolding for the one required deliverable: your defense solution and its
+observability layer. Nothing here requires you to expose your defense as an HTTP service — build it
+however you choose and wire your own observability layer around it.
 
-## Run a local evaluation
+## Self-test tooling
+
+These commands are for your own development and evidence-gathering — there is no organizer-run
+automated benchmark or leaderboard behind them, and no numeric score they produce is the official
+score:
 
 | Command | What it does |
 | --- | --- |
 | `sentinel scenarios validate PATH` | Schema, fixture, policy, tool, and surface checks (`--json`) |
 | `sentinel scenarios list PATH` | Scenario inventory (`--json`) |
-| `sentinel scenarios schema --out FILE` | Export the scenario JSON Schema |
-| `sentinel run --scenario PATH --defense MODE` | One scenario with timeline and artifact |
-| `sentinel eval public\|validation --defense MODE` | Scorecard with an in-process baseline |
-| `sentinel eval public\|validation --defense-url URL` | Scorecard for an HTTP defense |
-| `sentinel eval private --scenarios DIR --defense-url URL` | Hidden split; per-scenario details redacted |
-| `sentinel arena run --defense MODE --attacker mutation` | Adaptive red-team arena |
-| `sentinel replay ARTIFACT` | Human-readable timeline (`--json`) |
-| `sentinel submission validate PATH_OR_IMAGE [--live-url URL]` | Submission checks |
+| `sentinel run --scenario PATH --defense MODE [--model mock\|qwen3-8b]` | One scenario with timeline and artifact |
+| `sentinel eval public --defense MODE\|--defense-url URL` | Metrics across the published scenario library, for your own report |
+| `sentinel arena run --defense MODE --attacker mutation` | Optional adaptive self-test; also relevant if you attempt the AgentDojo bonus track |
+| `sentinel replay ARTIFACT` | Human-readable timeline (`--json`) — this is the evidence your video and report cite |
+| `sentinel submission validate PATH_OR_IMAGE [--live-url URL]` | Optional static/contract checks, useful if you containerize |
 | `sentinel fixtures generate [--scenarios]` | Regenerate deterministic fixtures and scenarios |
-| `sentinel serve defense\|attacker\|leaderboard` | HTTP services |
-| `sentinel leaderboard list --db FILE` | Local leaderboard |
+| `sentinel serve defense\|attacker\|leaderboard` | HTTP services, useful for local development |
 
-### Reference scorecards (mock model, example non-final weights)
-
-| split | defense | BTU | ASR | CVR | FBR | UER | official | eligible |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| public | allow_all | 1.00 | 1.00 | 0.50 | 0.00 | 0.00 | 0.15 | yes |
-| public | deny_sensitive | 0.56 | 0.89 | 0.11 | 0.07 | 0.00 | 0.43 | yes |
-| public | keyword | 0.78 | 0.67 | 0.33 | 0.05 | 0.00 | 0.45 | yes |
-| public | heuristic_risk | 1.00 | 0.00 | 0.00 | 0.00 | 0.01 | 1.00 | yes |
-| public | provenance | 1.00 | 0.00 | 0.00 | 0.05 | 0.00 | 0.99 | yes |
-| validation | keyword | 0.40 | 0.75 | 0.33 | 0.13 | 0.00 | 0.42 | no |
-| validation | provenance | 1.00 | 0.25 | 0.11 | 0.00 | 0.00 | 0.86 | yes |
-| validation | learned monitor starter | 1.00 | 0.25 | 0.11 | 0.00 | 0.00 | 0.86 | yes |
-
-The public scenarios are a development harness driven by a deterministic mock model whose attacks
-have recognizable structure. That is why simple structural baselines score well here. Hidden
-evaluation uses different templates, unseen attack families, adaptive attackers, and (when organizers
-enable it) real open-weight models. Do not read these numbers as evidence of robustness.
+The metrics `sentinel eval` reports (BTU, ASR, CVR, FBR, UER, ...) are defined in
+[docs/scoring.md](docs/scoring.md) and are good evidence for your technical report's results section
+— they are not how judges score your submission. Judges score from your video, observability layer,
+technical report, and repository against the published rubric.
 
 ## Repository map
 
 ```
 src/sentinel/
   core/        provenance, actions, events, scenarios, world state, canaries, policies, results
-  models/      ModelAdapter interface, deterministic MockModelAdapter, optional HF adapter
+  models/      ModelAdapter interface, deterministic MockModelAdapter, HF adapter (Qwen3-8B default)
   agent/       reference agent loop, memory, plan templating
   tools/       tool base class, registry (no network capability), gateway
   domains/     enterprise, finance, soc synthetic tools
   defenses/    Defense interface, HTTP client with fail modes, five baselines
-  attackers/   Attacker interface, mutation validator, HTTP client, static and mutation baselines
-  evaluator/   runner, labels, task/policy graders, leak detection, metrics, scoring, replay
-  api/         FastAPI apps: defense, attacker, leaderboard
-  sandbox/     sandbox policy, docker command builder, runners, submission validation
-  storage/     JSONL artifacts, SQLite leaderboard
-scenarios/     public (18), validation (9), schemas, private.example (docs only)
+  attackers/   internal scenario-attack mechanism: mutation validator, static and mutation baselines
+  evaluator/   runner, labels, task/policy graders, leak detection, metrics, replay
+  api/         FastAPI apps: defense, attacker, leaderboard (local dev tooling)
+  sandbox/     sandbox policy, docker command builder, runners, submission validation (optional)
+  storage/     JSONL artifacts, SQLite leaderboard (local dev tooling)
+scenarios/     the full published scenario library
 fixtures/      synthetic world data per domain
 policies/      machine-readable policy per domain
 starter-kits/  python-defense, learned-monitor (optional scaffolding)
-infra/         organizer Dockerfile, systemd examples
-scripts/       fixture/scenario generators, submission validation, release builder
+infra/         optional Dockerfile and systemd examples for local self-testing
+scripts/       fixture/scenario generators, submission validation
 tests/         unit, integration, security
 docs/          architecture, guides, threat and security models, scoring, authoring, report template
 ```
@@ -142,8 +146,8 @@ docs/          architecture, guides, threat and security models, scoring, author
 ## Developer commands
 
 `make setup`, `make lint`, `make format`, `make typecheck`, `make test`, `make test-security`,
-`make test-kits`, `make run-baseline`, `make eval-public`, `make eval-validation`, `make arena`,
-`make scenarios`, `make fixtures`, `make schema`, `make docker-build`, `make release-check`, `make release`.
+`make test-kits`, `make run-baseline`, `make eval-public`, `make arena`, `make scenarios`,
+`make fixtures`, `make schema`, `make docker-build`.
 
 ## Documentation
 
@@ -156,6 +160,11 @@ docs/          architecture, guides, threat and security models, scoring, author
 - [Scenario authoring](docs/scenario-authoring.md)
 - [Research report template](docs/research-report-template.md)
 - [Security policy](SECURITY.md) and [contributing](CONTRIBUTING.md)
+
+## Important dates
+
+Challenge release **17/09**, info session **18/09** (time TBA), submission deadline **22/09 23:59**.
+Questions: **skander.yacoubi@supcom.tn**.
 
 ## License
 
