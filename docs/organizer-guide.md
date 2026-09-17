@@ -31,10 +31,12 @@ attack succeeds under `allow_all`, a sensible defense can stop the attack withou
 ## 3. Prepare the reference model
 
 The official reference agent is a preconfigured **Qwen3-8B** (`Qwen/Qwen3-8B`), run locally via
-`HFModelAdapter`. Confirm the weights are downloadable ahead of time
-(`uv sync --extra hf && huggingface-cli download Qwen/Qwen3-8B`) and that
-`uv run sentinel run --scenario ... --defense provenance --model qwen3-8b` works on the machines
-teams will use, or document the compute participants need to run it themselves.
+`HFModelAdapter`. Teams self-host it — they download the weights and run it on their own hardware —
+so there is nothing for you to serve. Before release, confirm on a representative laptop/desktop that
+`uv sync --extra hf && huggingface-cli download Qwen/Qwen3-8B` and
+`uv run sentinel run --scenario ... --defense provenance --model qwen3-8b` both work, and mention the
+rough compute an 8B model needs (a few GB of disk, and either a GPU or patience on CPU) at the info
+session so teams can plan around it.
 
 ## 4. Run the info session (18/09)
 
@@ -88,6 +90,5 @@ limits). None of this is required of participants; it is here if you or a team w
 
 - Judging panel composition and how ties for the eighth pitch slot are broken.
 - Whether/how to verify the AgentDojo bonus-track results a team reports.
-- Compute made available for teams who cannot run Qwen3-8B locally.
 - Exact info-session time and pitch-day logistics.
 - Disclosure procedure for any infrastructure vulnerability reported during the challenge.
