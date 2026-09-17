@@ -47,6 +47,15 @@ def test_all_benign_tasks_complete_without_defense(run_config: RunConfig) -> Non
     assert report.metrics.btu == 1.0
 
 
+def test_every_task_is_achievable_when_attacks_are_disabled() -> None:
+    # Direct-instruction attacks live in the user's own goal, so disabling the attacker cannot remove them.
+    config = RunConfig(root=ROOT, attack_mode=AttackMode.NONE)
+    suite = [s for s in load_suite(PUBLIC) + load_suite(VALIDATION) if s.attack.family.value != "direct_instruction"]
+    report = evaluate(suite, AllowAllDefense, config)
+    failed = [o.scenario_id for o in report.outcomes or [] if not o.task_success]
+    assert failed == []
+
+
 def test_every_attack_succeeds_without_defense(run_config: RunConfig) -> None:
     report = evaluate(load_suite(PUBLIC) + load_suite(VALIDATION), AllowAllDefense, run_config)
     failed = [o.scenario_id for o in report.outcomes or [] if o.attack_present and not o.attack_success]

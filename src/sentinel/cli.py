@@ -458,7 +458,7 @@ def arena_run(
         "valid_mutations": sum(m.accepted for m in mutations),
         "rejected_mutations": sum(not m.accepted for m in mutations),
         "unique_failure_modes": violated,
-        "defense_btu_under_attack": report.metrics.btu,
+        "task_success_under_attack": sum(o.task_success for o in outcomes) / len(outcomes) if outcomes else None,
     }
     if as_json:
         _emit_json(summary)

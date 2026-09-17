@@ -2,7 +2,8 @@
 FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1 \
     SENTINEL_ROOT=/app PATH="/app/.venv/bin:${PATH}"
-COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /usr/local/bin/uv
+# Pin uv to the version that produced uv.lock.
+COPY --from=ghcr.io/astral-sh/uv:0.12.6 /uv /usr/local/bin/uv
 WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md LICENSE ./
