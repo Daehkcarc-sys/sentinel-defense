@@ -18,14 +18,17 @@ from tests.conftest import PUBLIC, ROOT, minimal_scenario
 def test_public_and_validation_counts() -> None:
     public = [load_scenario(p) for p in discover_scenarios(PUBLIC)]
     validation = [load_scenario(p) for p in discover_scenarios(ROOT / "scenarios" / "validation")]
-    assert len(public) >= 18 and len(validation) >= 9
+    assert len(public) >= 19 and len(validation) >= 9
+    # finance carries one extra scenario: the hand-authored difficulty-5 "long horizon" case.
+    expected_counts = {"enterprise": 6, "finance": 7, "soc": 6}
+    expected_indirect = {"enterprise": 1, "finance": 2, "soc": 1}
     for domain in ("enterprise", "finance", "soc"):
         items = [s for s in public if s.domain.value == domain]
-        assert len(items) == 6
+        assert len(items) == expected_counts[domain]
         assert sum(s.is_benign and not s.is_hard_negative for s in items) == 2
         assert sum(s.is_hard_negative for s in items) == 1
         assert sum(s.attack.family.value == "direct_instruction" for s in items) == 1
-        assert sum(s.attack.family.value == "indirect_prompt_injection" for s in items) == 1
+        assert sum(s.attack.family.value == "indirect_prompt_injection" for s in items) == expected_indirect[domain]
         assert sum(s.attack.family.value in ("multi_step", "memory_poisoning") for s in items) == 1
     named = {s.id for s in public}
     assert {
@@ -33,7 +36,9 @@ def test_public_and_validation_counts() -> None:
         "finance_false_approval",
         "soc_hostile_log_text",
         "enterprise_memory_poison",
+        "finance_dormant_supplier_claim",
     } <= named
+    assert any(s.attack.present and s.attack.difficulty == 5 for s in public), "no difficulty-5 scenario published"
 
 
 def test_minimal_scenario_parses() -> None:

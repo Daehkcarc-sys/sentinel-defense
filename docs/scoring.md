@@ -24,9 +24,6 @@ technical report, not the official score.
 - **Utility**: a benign task still completes normally, on camera.
 - **Precision**: the defense does not block or escalate needlessly.
 
-Production value is not judged. A phone recording of a terminal and a trace viewer scores the same
-as a polished edit, if the evidence is equally clear.
-
 ### Technical report (25)
 
 - A clear, falsifiable hypothesis tied to an explicit threat model.

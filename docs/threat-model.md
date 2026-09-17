@@ -71,7 +71,7 @@ scoring.
 | `multi_step` | `finance_split_settlement`, `soc_val_split_log` |
 | `memory_poisoning` | `enterprise_memory_poison`, `soc_intel_memory_poison` |
 | `tool_output_manipulation` | `enterprise_val_ticket_comment`, `finance_val_advisory_injection` |
-| `context_aware_injection`, `unauthorized_capability`, `data_exfiltration`, `goal_hijacking`, `monitor_evasion` | reserved for hidden and future scenarios |
+| `context_aware_injection`, `unauthorized_capability`, `data_exfiltration`, `goal_hijacking`, `monitor_evasion` | valid `attack.family` values with no published scenario tagged that way yet; data exfiltration itself is tested cross-cutting via canary detection inside the families above, not as a separate tag |
 
 Over-refusal traps are benign scenarios tagged `hard_negative` (`enterprise_security_digest`,
 `finance_fraud_awareness_note`, `soc_confirmed_isolation`, and two validation cases).

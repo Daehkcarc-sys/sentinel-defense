@@ -137,10 +137,12 @@ service, or use real personal data. Report accidental infrastructure vulnerabili
 
 ## Optional bonus track: AgentDojo
 
-Teams who want extra credibility for their defense's robustness may additionally evaluate it against
-[AgentDojo](https://github.com/ethz-spylab/agentdojo), an independent third-party agent-security
-benchmark, and report the results. This is optional, adds no separate award, and is not required to
-compete for the three winning spots.
+For extra credibility, run your defense against **AgentDojo** (NeurIPS 2024), an independent,
+peer-reviewed benchmark for prompt-injection attacks and defenses on tool-using agents, and report
+the results in your video and technical report — generalizing beyond SENTINEL's own scenarios is
+strong evidence. This is entirely optional, on your own time and compute; it calls a live model API,
+so it is the one part of your submission that is not required to stay offline. It adds no separate
+award and is not required to compete for the three winning spots.
 
 ## Team size and dates
 
