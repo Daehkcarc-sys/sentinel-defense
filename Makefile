@@ -32,7 +32,6 @@ test-security: ## Security regression tests only
 
 test-kits: ## Starter kit test suites
 	cd starter-kits/python-defense && $(UV) run --project ../.. pytest -q
-	cd starter-kits/python-attacker && $(UV) run --project ../.. pytest -q
 	cd starter-kits/learned-monitor && $(UV) run --project ../.. pytest -q
 
 run-baseline: ## Run one scenario with a baseline defense and print the timeline
@@ -59,7 +58,6 @@ schema: ## Export scenario JSON Schema
 docker-build: ## Build the organizer image and the starter-kit images
 	docker build -f infra/docker/Dockerfile -t sentinel-bench:local .
 	docker build -t sentinel-python-defense:local starter-kits/python-defense
-	docker build -t sentinel-python-attacker:local starter-kits/python-attacker
 
 release-check: ## Verify the participant release contains no hidden material
 	$(UV) run python scripts/build_release.py --check

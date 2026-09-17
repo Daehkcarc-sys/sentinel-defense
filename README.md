@@ -75,8 +75,8 @@ uv run sentinel submission validate ../my-defense
 ```
 
 See [docs/participant-guide.md](docs/participant-guide.md) and the starter kits:
-[python-defense](starter-kits/python-defense), [learned-monitor](starter-kits/learned-monitor),
-[python-attacker](starter-kits/python-attacker).
+[python-defense](starter-kits/python-defense) and [learned-monitor](starter-kits/learned-monitor).
+Both are optional scaffolding for the one required deliverable: your defense solution.
 
 ## Run a local evaluation
 
@@ -132,7 +132,7 @@ src/sentinel/
 scenarios/     public (18), validation (9), schemas, private.example (docs only)
 fixtures/      synthetic world data per domain
 policies/      machine-readable policy per domain
-starter-kits/  python-defense, learned-monitor, python-attacker
+starter-kits/  python-defense, learned-monitor (optional scaffolding)
 infra/         organizer Dockerfile, systemd examples
 scripts/       fixture/scenario generators, submission validation, release builder
 tests/         unit, integration, security

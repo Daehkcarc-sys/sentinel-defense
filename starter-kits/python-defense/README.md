@@ -1,11 +1,14 @@
 # Python defense starter kit
 
-A minimal, working SENTINEL defense service. Copy this directory, change `app/decision.py`,
-and you have a valid submission.
+**Optional.** SENTINEL does not require a specific architecture, language, or interface — you may
+build your solution however you choose (see `docs/scenario-authoring.md`'s sibling, the
+[Defense Rules](../../docs) in the participant spec). This kit is one example: a defense exposed as
+an HTTP service, following the same shape the CLI's `--defense-url` option expects. Copy it, change
+`app/decision.py`, and you have a working starting point — or ignore it entirely and build your own.
 
 ```
 python-defense/
-├── app/models.py        # v1 API schemas (self-contained; no sentinel import needed)
+├── app/models.py        # example request/response shapes (self-contained; no sentinel import needed)
 ├── app/decision.py      # <- your defense logic
 ├── app/main.py          # FastAPI service: GET /healthz, POST /v1/decision
 ├── tests/test_app.py
@@ -13,9 +16,15 @@ python-defense/
 └── sentinel-submission.yaml
 ```
 
-## Develop
+## What you are defending
 
-From the repository root:
+Participants get a preconfigured **Qwen3-8B** tool-using agent as the official reference
+implementation (`Qwen/Qwen3-8B`), running locally through the SENTINEL simulator on synthetic data.
+Your defense sits between that agent and its tools. Nothing here requires you to keep using Qwen3-8B
+internally — your reasoning can be rules, a fine-tuned model, model-internals probes, multi-agent
+oversight, or anything else; the agent it protects is the fixed part, not your method.
+
+## Develop
 
 ```bash
 cp -r starter-kits/python-defense ../my-defense
@@ -25,14 +34,24 @@ uv run pytest -q
 uv run uvicorn app.main:app --port 8080
 ```
 
-## Evaluate locally against public scenarios
+## Try it against the reference agent
 
 In another shell, from the `sentinel-bench` checkout:
 
 ```bash
-uv run sentinel eval public --defense-url http://127.0.0.1:8080
-uv run sentinel eval validation --defense-url http://127.0.0.1:8080
+# the reference agent (Qwen3-8B) proposes actions; your service decides on them
+uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml \
+  --defense-url http://127.0.0.1:8080 --model qwen3-8b
+
+# replay the trace -- this is the evidence your video is built around
+uv run sentinel replay artifacts/<run_id>.jsonl
 ```
+
+`--model qwen3-8b` needs the weights downloaded ahead of time (`uv sync --extra hf`, then
+`huggingface-cli download Qwen/Qwen3-8B`) and enough local compute to run an 8B model. Use
+`--model mock` while iterating on your defense logic itself -- it drives the same tools and events
+without needing GPU time, so you can develop the decision logic first and validate against Qwen3-8B
+once it is behaving the way you expect.
 
 ## Validate and containerize
 
@@ -43,13 +62,13 @@ docker run --rm -p 127.0.0.1:8080:8080 --read-only --tmpfs /tmp --cap-drop ALL m
 uv run sentinel submission validate my-defense:dev --live-url http://127.0.0.1:8080
 ```
 
-## Contract reminders
+## Reminders
 
-- Return `allow`, `block`, `escalate`, or `rewrite` with `risk_score` and `confidence` in [0, 1].
-- `rewrite` must include `rewritten_action`; it may not turn a non-final action into a final one.
-- Reason codes are `UPPER_SNAKE_CASE`. Never return private chain-of-thought; use short codes and
-  an optional one-line `explanation`.
-- `metadata` is opaque, at most 4 KB, and never affects scoring.
-- Official evaluation runs with no network access. Bundle model weights in the image or use the
-  organizer's read-only model mount, and declare them in `sentinel-submission.yaml`.
-- Escalations are answered by a simulated human, but unnecessary escalations lower your score.
+- Reason from the agent state, the candidate action, its provenance, the active policy, and the
+  content observed -- never from a scenario identifier or a hard-coded expected outcome.
+- Every decision resolves to one of four outcomes: `allow`, `block`, `escalate`, or `rewrite`.
+  `rewrite` must include a `rewritten_action`; it may not turn a non-final action into a final one.
+- Reason codes are `UPPER_SNAKE_CASE`. Never return private chain-of-thought -- a risk score, a
+  confidence, and a short reason are enough for your own observability layer to show why.
+- There is no automated benchmark and no numeric score to game. Judges watch your video and the
+  trace it is built around, read your technical report, and read your code.

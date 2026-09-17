@@ -84,9 +84,6 @@ def test_live_submission_contract_checks() -> None:
     with serve(create_defense_app(ProvenanceDefense())) as url:
         report = validate_submission(str(ROOT / "starter-kits" / "python-defense"), live_url=url)
         assert report.ok, report.to_dict()
-    with serve(create_attack_app(MutationAttacker)) as url:
-        report = validate_submission(str(ROOT / "starter-kits" / "python-attacker"), live_url=url, kind="attacker")
-        assert report.ok, report.to_dict()
 
 
 def test_participant_starter_kit_end_to_end(run_config: RunConfig) -> None:

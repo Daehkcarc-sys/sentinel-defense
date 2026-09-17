@@ -10,12 +10,11 @@ def statuses(report) -> dict[str, str]:  # type: ignore[no-untyped-def]
 
 def test_starter_kits_pass_static_validation() -> None:
     assert validate_submission(str(ROOT / "starter-kits" / "python-defense")).ok
-    assert validate_submission(str(ROOT / "starter-kits" / "python-attacker"), kind="attacker").ok
     assert validate_submission(str(ROOT / "starter-kits" / "learned-monitor")).ok
 
 
 def test_kind_mismatch_fails() -> None:
-    report = validate_submission(str(ROOT / "starter-kits" / "python-attacker"), kind="defense")
+    report = validate_submission(str(ROOT / "starter-kits" / "python-defense"), kind="attacker")
     assert statuses(report)["manifest"] == "fail"
 
 

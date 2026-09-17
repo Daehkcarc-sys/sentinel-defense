@@ -105,6 +105,18 @@ def _attacker_factory(
     return ATTACKERS[attacker]
 
 
+def _model_factory(model: str) -> Callable[[], Any]:
+    """mock (default, offline) | qwen3-8b | any local Hugging Face model path."""
+    if model == "mock":
+        from sentinel.models.mock import MockModelAdapter
+
+        return MockModelAdapter
+    from sentinel.models.hf_adapter import DEFAULT_MODEL, HFModelAdapter
+
+    path = DEFAULT_MODEL if model in ("qwen3-8b", "qwen3", "qwen", "default") else model
+    return lambda: HFModelAdapter(path)
+
+
 # ---- scenarios ---------------------------------------------------------------------------------
 
 
@@ -218,6 +230,7 @@ def run(
     attacker: Annotated[str, typer.Option(help="none | static | mutation")] = "static",
     attacker_url: Annotated[str | None, typer.Option("--attacker-url")] = None,
     attack_mode: Annotated[str, typer.Option(help="static | adaptive | none")] = "static",
+    model: Annotated[str, typer.Option(help="mock (offline, default) | qwen3-8b | a local HF model path")] = "mock",
     artifacts: ArtifactsOpt = Path("artifacts"),
     timeline: Annotated[bool, typer.Option("--timeline/--no-timeline")] = True,
     config: ConfigOpt = None,
@@ -241,6 +254,8 @@ def run(
         root=_root(),
         competition=competition,
         attack_mode=AttackMode(attack_mode),
+        model_factory=_model_factory(model),
+        include_reference_plan=(model == "mock"),
         artifacts=store,
         artifact_group=group,
     )
