@@ -1,4 +1,4 @@
-"""Submission validation: static checks on a directory or image, plus live API contract tests."""
+"""Optional static checks for a team's defense solution."""
 
 from __future__ import annotations
 
@@ -14,11 +14,8 @@ import httpx
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from sentinel.attackers.interface import AttackRequest, AttackResponse, SurfaceView
 from sentinel.core.actions import ActionType, CandidateAction, DefenseDecision
-from sentinel.core.scenario import MutationOperation, SurfaceKind
 from sentinel.defenses.interface import DefenseRequest
-from sentinel.sandbox.docker import build_inspect_command
 
 MANIFEST_NAME = "sentinel-submission.yaml"
 MAX_FILE_BYTES = 50_000_000
@@ -28,7 +25,6 @@ SECRET_PATTERNS = (
     re.compile(r"(?i)(api[_-]?key|secret[_-]?key|password)\s*[:=]\s*['\"][^'\"\s]{12,}['\"]"),
 )
 FORBIDDEN_FILENAMES = {".env", "id_rsa", "id_ed25519", ".netrc", ".npmrc", ".pypirc"}
-PRIVATE_SCENARIO_MARKER = re.compile(r"^\s*split:\s*private\s*$|\"split\"\s*:\s*\"private\"", re.MULTILINE)
 SKIP_DIRS = {".git", ".venv", "__pycache__", "node_modules", ".mypy_cache", ".ruff_cache", ".pytest_cache"}
 
 
@@ -49,7 +45,7 @@ class Resources(BaseModel):
 class SubmissionManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,63}$")
-    kind: Literal["defense", "attacker"]
+    kind: Literal["defense"] = "defense"
     api_version: Literal["v1"] = "v1"
     port: int = Field(default=8080, ge=1024, le=65535)
     team: str = Field(min_length=1, max_length=80)
@@ -87,7 +83,7 @@ def _dockerfile_user(text: str) -> str | None:
     return users[-1] if users else None
 
 
-def _check_directory(path: Path, report: SubmissionReport, kind: str) -> None:
+def _check_directory(path: Path, report: SubmissionReport) -> None:
     dockerfile = path / "Dockerfile"
     if not dockerfile.is_file():
         report.add("dockerfile", "fail", "Dockerfile not found at submission root")
@@ -111,19 +107,15 @@ def _check_directory(path: Path, report: SubmissionReport, kind: str) -> None:
     else:
         try:
             manifest = SubmissionManifest.model_validate(yaml.safe_load(manifest_path.read_text()))
-            if manifest.kind != kind:
-                report.add("manifest", "fail", f"manifest kind {manifest.kind!r} but validating {kind!r}")
-            else:
-                report.add(
-                    "manifest",
-                    "pass",
-                    f"{manifest.name}: {len(manifest.models)} model(s), {len(manifest.datasets)} dataset(s)",
-                )
+            report.add(
+                "manifest",
+                "pass",
+                f"{manifest.name}: {len(manifest.models)} model(s), {len(manifest.datasets)} dataset(s)",
+            )
         except (ValidationError, yaml.YAMLError) as exc:
             report.add("manifest", "fail", f"invalid manifest: {str(exc)[:300]}")
 
     secrets: list[str] = []
-    private: list[str] = []
     large: list[str] = []
     escapes: list[str] = []
     root = path.resolve()
@@ -148,10 +140,7 @@ def _check_directory(path: Path, report: SubmissionReport, kind: str) -> None:
         text = file.read_text(errors="ignore")
         if any(pattern.search(text) for pattern in SECRET_PATTERNS):
             secrets.append(rel)
-        if file.suffix in (".yaml", ".yml", ".json") and PRIVATE_SCENARIO_MARKER.search(text):
-            private.append(rel)
     report.add("no_secrets", "fail" if secrets else "pass", ", ".join(secrets[:10]))
-    report.add("no_private_scenarios", "fail" if private else "pass", ", ".join(private[:10]))
     report.add("no_escaping_symlinks", "fail" if escapes else "pass", ", ".join(escapes[:10]))
     report.add(
         "file_sizes",
@@ -160,12 +149,16 @@ def _check_directory(path: Path, report: SubmissionReport, kind: str) -> None:
     )
 
 
+def _build_inspect_command(image: str) -> list[str]:
+    return ["docker", "image", "inspect", image]
+
+
 def _check_image(image: str, report: SubmissionReport) -> None:
     if shutil.which("docker") is None:
         report.add("image", "fail", "docker CLI not available to inspect the image")
         return
     completed = subprocess.run(
-        build_inspect_command(image),
+        _build_inspect_command(image),
         capture_output=True,
         text=True,
         timeout=60,
@@ -195,69 +188,38 @@ def sample_defense_request() -> DefenseRequest:
     )
 
 
-def sample_attack_request() -> AttackRequest:
-    return AttackRequest(
-        scenario_id="contract_test",
-        domain="enterprise",
-        round=0,
-        step_id=1,
-        objective="contract test",
-        surfaces=[
-            SurfaceView(
-                id="doc_body",
-                kind=SurfaceKind.DOCUMENT,
-                operations=[MutationOperation.APPEND_TEXT],
-                max_chars=200,
-                current_text="",
-            )
-        ],
-        budget_remaining=1,
-    )
-
-
-def _check_live(url: str, kind: str, report: SubmissionReport, transport: httpx.BaseTransport | None = None) -> None:
+def _check_live(url: str, report: SubmissionReport, transport: httpx.BaseTransport | None = None) -> None:
     with httpx.Client(base_url=url.rstrip("/"), timeout=10.0, transport=transport) as client:
         try:
             health = client.get("/healthz")
             report.add("live_healthz", "pass" if health.status_code == 200 else "fail", f"HTTP {health.status_code}")
-            if kind == "defense":
-                response = client.post("/v1/decision", json=sample_defense_request().model_dump(mode="json"))
-                try:
-                    DefenseDecision.model_validate_json(response.content)
-                    report.add("live_decision_contract", "pass")
-                except ValidationError as exc:
-                    report.add("live_decision_contract", "fail", f"HTTP {response.status_code}: {str(exc)[:200]}")
-                bad = client.post("/v1/decision", json={"run_id": "x"})
-                report.add(
-                    "live_rejects_malformed",
-                    "pass" if 400 <= bad.status_code < 500 else "warn",
-                    f"HTTP {bad.status_code}",
-                )
-            else:
-                response = client.post("/v1/attack/next", json=sample_attack_request().model_dump(mode="json"))
-                try:
-                    AttackResponse.model_validate_json(response.content)
-                    report.add("live_attack_contract", "pass")
-                except ValidationError as exc:
-                    report.add("live_attack_contract", "fail", f"HTTP {response.status_code}: {str(exc)[:200]}")
+            response = client.post("/v1/decision", json=sample_defense_request().model_dump(mode="json"))
+            try:
+                DefenseDecision.model_validate_json(response.content)
+                report.add("live_decision_contract", "pass")
+            except ValidationError as exc:
+                report.add("live_decision_contract", "fail", f"HTTP {response.status_code}: {str(exc)[:200]}")
+            bad = client.post("/v1/decision", json={"run_id": "x"})
+            report.add(
+                "live_rejects_malformed",
+                "pass" if 400 <= bad.status_code < 500 else "warn",
+                f"HTTP {bad.status_code}",
+            )
         except httpx.TransportError as exc:
             report.add("live_service", "fail", f"could not reach {url}: {type(exc).__name__}")
 
 
 def validate_submission(
-    target: str, live_url: str | None = None, kind: str = "defense", transport: httpx.BaseTransport | None = None
+    target: str, live_url: str | None = None, transport: httpx.BaseTransport | None = None
 ) -> SubmissionReport:
     report = SubmissionReport(target=target)
-    if kind not in ("defense", "attacker"):
-        report.add("kind", "fail", "kind must be 'defense' or 'attacker'")
-        return report
     path = Path(target)
     if path.is_dir():
-        _check_directory(path, report, kind)
+        _check_directory(path, report)
     elif path.exists():
         report.add("target", "fail", "target must be a directory or a Docker image reference")
     else:
         _check_image(target, report)
     if live_url:
-        _check_live(live_url, kind, report, transport)
+        _check_live(live_url, report, transport)
     return report

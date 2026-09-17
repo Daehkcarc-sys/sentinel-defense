@@ -71,27 +71,6 @@ def test_run_eval_and_replay(tmp_path: Path) -> None:
     assert len(list((artifacts / "scorecards").glob("*.json"))) == 2
 
 
-def test_eval_records_leaderboard(tmp_path: Path) -> None:
-    db = tmp_path / "lb.sqlite3"
-    code, _ = invoke(
-        "eval",
-        "public",
-        "--defense",
-        "keyword",
-        "--artifacts",
-        str(tmp_path / "a"),
-        "--record-db",
-        str(db),
-        "--submission-name",
-        "keyword-baseline",
-        "--json",
-    )
-    assert code == 0
-    code, output = invoke("leaderboard", "list", "--db", str(db), "--json")
-    entries = json.loads(output)
-    assert entries[0]["name"] == "keyword-baseline" and entries[0]["status"] == "succeeded"
-
-
 def test_eval_argument_errors(tmp_path: Path) -> None:
     code, _ = invoke("eval", "public", "--artifacts", str(tmp_path))
     assert code != 0
@@ -112,21 +91,6 @@ def test_eval_argument_errors(tmp_path: Path) -> None:
         str(tmp_path),
     )
     assert code != 0
-
-
-def test_arena_command(tmp_path: Path) -> None:
-    code, output = invoke(
-        "arena",
-        "run",
-        "--scenarios",
-        str(ROOT / "scenarios/public"),
-        "--defense",
-        "allow_all",
-        "--artifacts",
-        str(tmp_path),
-        "--json",
-    )
-    assert code == 0 and json.loads(output)["valid_mutations"] > 0
 
 
 def test_submission_validate_command() -> None:

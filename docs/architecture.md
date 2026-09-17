@@ -54,8 +54,7 @@ sequenceDiagram
 | Attacker | `sentinel.attackers.interface.Attacker` | `StaticAttacker`, `MutationAttacker`, `HttpAttacker` |
 | Tools | `sentinel.tools.base.Tool` via `ToolRegistry` | 25 synthetic tools across 3 domains |
 | Graders | `SuccessCondition` types + `register_grader` | state-based graders; `SemanticGrader` protocol for later |
-| Storage | `ArtifactStore`, `LeaderboardStore` | JSONL files, SQLite |
-| Sandbox | `sentinel.sandbox.runner.SandboxRunner` | `DockerSandboxRunner`, `DryRunSandboxRunner` |
+| Storage | `ArtifactStore` | JSONL files |
 | Agent hooks | `sentinel.agent.base.RunHooks` | `EvaluationHooks` (labels, policies, leaks, attacker scheduling) |
 
 The agent never sees reference plans, success conditions, or attack payloads. It talks to the
@@ -123,7 +122,6 @@ recording the trace your video and report are built on.
 - `api/defense_app.py`: wraps any `Defense` in `GET /healthz` and `POST /v1/decision`.
 - `api/attack_app.py`: wraps an attacker factory in `GET /healthz` and `POST /v1/attack/next`, with
   one session per scenario.
-- `api/leaderboard_app.py`: HTML page plus JSON API; writes require a bearer token; aggregates only.
 
 ## Extending
 

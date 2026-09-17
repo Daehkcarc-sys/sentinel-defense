@@ -1,9 +1,8 @@
-"""SENTINEL command-line interface."""
+"""SENTINEL participant command-line interface."""
 
 from __future__ import annotations
 
 import json
-import os
 import runpy
 from collections.abc import Callable
 from pathlib import Path
@@ -23,7 +22,7 @@ from sentinel.core.scenario import (
 from sentinel.defenses.interface import Defense
 
 app = typer.Typer(
-    help="SENTINEL: adaptive safety benchmark for autonomous AI agents.",
+    help="SENTINEL: build and demonstrate safety for autonomous AI agents.",
     no_args_is_help=True,
     pretty_exceptions_show_locals=False,
 )
@@ -31,16 +30,12 @@ scenarios_app = typer.Typer(help="Validate, list, and export scenario schemas.",
 eval_app = typer.Typer(help="Evaluate a defense on a scenario split.", no_args_is_help=True)
 submission_app = typer.Typer(help="Validate participant submissions.", no_args_is_help=True)
 fixtures_app = typer.Typer(help="Synthetic fixture data.", no_args_is_help=True)
-serve_app = typer.Typer(help="Run HTTP services (defense, attacker, leaderboard).", no_args_is_help=True)
-arena_app = typer.Typer(help="Adaptive red-team arena runs.", no_args_is_help=True)
-leaderboard_app = typer.Typer(help="Local leaderboard database.", no_args_is_help=True)
+serve_app = typer.Typer(help="Run a local defense helper service.", no_args_is_help=True)
 app.add_typer(scenarios_app, name="scenarios")
 app.add_typer(eval_app, name="eval")
 app.add_typer(submission_app, name="submission")
 app.add_typer(fixtures_app, name="fixtures")
 app.add_typer(serve_app, name="serve")
-app.add_typer(arena_app, name="arena")
-app.add_typer(leaderboard_app, name="leaderboard")
 
 console = Console()
 JsonFlag = Annotated[bool, typer.Option("--json", help="Machine-readable JSON output.")]
@@ -88,14 +83,7 @@ def _defense_factory(
     return BASELINES[key]
 
 
-def _attacker_factory(
-    attacker: str, attacker_url: str | None, competition: CompetitionConfig
-) -> Callable[[], Any] | None:
-    if attacker_url:
-        from sentinel.attackers.client import HttpAttacker
-
-        timeout = competition.arena.attacker_timeout_s
-        return lambda: HttpAttacker(attacker_url, timeout_s=timeout)
+def _attacker_factory(attacker: str) -> Callable[[], Any] | None:
     if attacker == "none":
         return None
     from sentinel.attackers.baselines import ATTACKERS
@@ -228,7 +216,6 @@ def run(
     defense: Annotated[str | None, typer.Option("--defense", help="Baseline defense name.")] = None,
     defense_url: Annotated[str | None, typer.Option("--defense-url", help="Defense service URL.")] = None,
     attacker: Annotated[str, typer.Option(help="none | static | mutation")] = "static",
-    attacker_url: Annotated[str | None, typer.Option("--attacker-url")] = None,
     attack_mode: Annotated[str, typer.Option(help="static | adaptive | none")] = "static",
     model: Annotated[str, typer.Option(help="mock (offline, default) | qwen3-8b | a local HF model path")] = "mock",
     artifacts: ArtifactsOpt = Path("artifacts"),
@@ -244,7 +231,7 @@ def run(
     competition = _competition(config)
     loaded = load_scenario(scenario)
     factory = _defense_factory(defense, defense_url, competition)
-    attacker_factory = _attacker_factory(attacker, attacker_url, competition)
+    attacker_factory = _attacker_factory(attacker)
     if attacker_factory is None:
         attack_mode = "none"
     instance = factory()
@@ -315,14 +302,11 @@ def _run_eval(
     defense: str | None,
     defense_url: str | None,
     attacker: str,
-    attacker_url: str | None,
     attack_mode: str,
     artifacts: Path,
     config: Path | None,
     as_json: bool,
     output: Path | None,
-    record_db: Path | None,
-    submission_name: str | None,
 ) -> None:
     from sentinel.evaluator.runner import (
         AttackMode,
@@ -351,7 +335,7 @@ def _run_eval(
         artifacts=store,
         artifact_group=group,
     )
-    attacker_factory = _attacker_factory(attacker, attacker_url, competition)
+    attacker_factory = _attacker_factory(attacker)
     if attacker_factory is None:
         run_config.attack_mode = AttackMode.NONE
     report = evaluate(suite, factory, run_config, attacker_factory)
@@ -360,12 +344,6 @@ def _run_eval(
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(view, indent=2, sort_keys=True) + "\n")
-    if record_db:
-        from sentinel.storage.leaderboard import LeaderboardStore
-
-        board = LeaderboardStore(record_db)
-        sub_id = board.create(submission_name or name, report.benchmark_version, split)
-        board.set_result(sub_id, report)
     if as_json:
         _emit_json(view)
         return
@@ -384,13 +362,10 @@ def _eval_command(split: str, default_path: Callable[[], Path]) -> Callable[...,
         defense_url: Annotated[str | None, typer.Option("--defense-url", help="Defense service URL.")] = None,
         scenarios: Annotated[Path | None, typer.Option("--scenarios", help="Override scenario path.")] = None,
         attacker: Annotated[str, typer.Option(help="none | static | mutation")] = "static",
-        attacker_url: Annotated[str | None, typer.Option("--attacker-url")] = None,
         attack_mode: Annotated[str, typer.Option(help="static | adaptive | none")] = "static",
         artifacts: ArtifactsOpt = Path("artifacts"),
         config: ConfigOpt = None,
         output: Annotated[Path | None, typer.Option("--output", help="Also write the scorecard here.")] = None,
-        record_db: Annotated[Path | None, typer.Option("--record-db", help="Record in leaderboard DB.")] = None,
-        submission_name: Annotated[str | None, typer.Option("--submission-name")] = None,
         as_json: JsonFlag = False,
     ) -> None:
         _run_eval(
@@ -399,87 +374,19 @@ def _eval_command(split: str, default_path: Callable[[], Path]) -> Callable[...,
             defense,
             defense_url,
             attacker,
-            attacker_url,
             attack_mode,
             artifacts,
             config,
             as_json,
             output,
-            record_db,
-            submission_name,
         )
 
-    command.__doc__ = f"Evaluate a defense on the {split} split."
+    command.__doc__ = f"Run optional local diagnostics on the {split} scenarios."
     return command
-
-
-def _private_path() -> Path:
-    env = os.environ.get("SENTINEL_PRIVATE_SCENARIOS")
-    if not env:
-        raise typer.BadParameter("set SENTINEL_PRIVATE_SCENARIOS or pass --scenarios for the private split")
-    return Path(env)
 
 
 eval_app.command("public")(_eval_command("public", lambda: _root() / "scenarios" / "public"))
 eval_app.command("validation")(_eval_command("validation", lambda: _root() / "scenarios" / "validation"))
-eval_app.command("private")(_eval_command("private", _private_path))
-
-
-@arena_app.command("run")
-def arena_run(
-    scenarios: Annotated[Path, typer.Option("--scenarios")] = Path("scenarios/public"),
-    defense: Annotated[str | None, typer.Option("--defense")] = None,
-    defense_url: Annotated[str | None, typer.Option("--defense-url")] = None,
-    attacker: Annotated[str, typer.Option(help="static | mutation")] = "mutation",
-    attacker_url: Annotated[str | None, typer.Option("--attacker-url")] = None,
-    artifacts: ArtifactsOpt = Path("artifacts"),
-    config: ConfigOpt = None,
-    as_json: JsonFlag = False,
-) -> None:
-    """Adaptive arena: the attacker is queried before every agent step within its budget."""
-    from sentinel.evaluator.runner import (
-        AttackMode,
-        RunConfig,
-        eval_group_name,
-        evaluate,
-        load_suite,
-    )
-    from sentinel.storage.runs import ArtifactStore
-
-    competition = _competition(config)
-    suite = [s for s in load_suite(scenarios) if s.attack.present and s.attack.surfaces]
-    factory = _defense_factory(defense, defense_url, competition)
-    attacker_factory = _attacker_factory(attacker, attacker_url, competition)
-    store = ArtifactStore(artifacts)
-    group = store.unique_group(eval_group_name("arena", defense or "http_defense"))
-    report = evaluate(
-        suite,
-        factory,
-        RunConfig(
-            root=_root(),
-            competition=competition,
-            attack_mode=AttackMode.ADAPTIVE,
-            artifacts=store,
-            artifact_group=group,
-        ),
-        attacker_factory,
-    )
-    outcomes = report.outcomes or []
-    mutations = [m for o in outcomes for m in o.mutations]
-    violated = sorted({f["rule_id"] for o in outcomes if o.attack_success for f in o.findings})
-    summary = {
-        "scenarios": len(outcomes),
-        "attack_success_rate": report.metrics.asr,
-        "valid_mutations": sum(m.accepted for m in mutations),
-        "rejected_mutations": sum(not m.accepted for m in mutations),
-        "unique_failure_modes": violated,
-        "task_success_under_attack": sum(o.task_success for o in outcomes) / len(outcomes) if outcomes else None,
-    }
-    if as_json:
-        _emit_json(summary)
-        return
-    for key, value in summary.items():
-        console.print(f"{key}: {value}")
 
 
 # ---- replay / fixtures -------------------------------------------------------------------------
@@ -521,13 +428,12 @@ def fixtures_generate(
 def submission_validate(
     target: Annotated[str, typer.Argument(help="Submission directory or Docker image reference.")],
     live_url: Annotated[str | None, typer.Option("--live-url", help="Also contract-test a running service.")] = None,
-    kind: Annotated[str, typer.Option(help="defense | attacker")] = "defense",
     as_json: JsonFlag = False,
 ) -> None:
-    """Static checks for a submission directory or image, plus optional live API contract tests."""
+    """Optional static checks for a defense directory or image."""
     from sentinel.sandbox.submission import validate_submission
 
-    report = validate_submission(target, live_url=live_url, kind=kind)
+    report = validate_submission(target, live_url=live_url)
     if as_json:
         _emit_json(report.to_dict())
     else:
@@ -557,67 +463,6 @@ def serve_defense(
     from sentinel.defenses.baselines import get_baseline
 
     uvicorn.run(create_defense_app(get_baseline(baseline)), host=host, port=port)
-
-
-@serve_app.command("attacker")
-def serve_attacker(
-    baseline: Annotated[str, typer.Option(help="static | mutation")] = "mutation",
-    host: str = "127.0.0.1",
-    port: int = 8081,
-) -> None:
-    """Serve a baseline attacker over the official HTTP API."""
-    import uvicorn
-
-    from sentinel.api.attack_app import create_attack_app
-    from sentinel.attackers.baselines import get_attacker
-
-    uvicorn.run(create_attack_app(lambda: get_attacker(baseline)), host=host, port=port)
-
-
-@serve_app.command("leaderboard")
-def serve_leaderboard(
-    db: Annotated[Path, typer.Option(help="SQLite database path.")] = Path("artifacts/leaderboard.sqlite3"),
-    host: str = "127.0.0.1",
-    port: int = 8090,
-) -> None:
-    """Serve the local leaderboard (admin writes require SENTINEL_ADMIN_TOKEN)."""
-    import uvicorn
-
-    from sentinel.api.leaderboard_app import create_leaderboard_app
-    from sentinel.storage.leaderboard import LeaderboardStore
-
-    uvicorn.run(
-        create_leaderboard_app(LeaderboardStore(db), os.environ.get("SENTINEL_ADMIN_TOKEN")), host=host, port=port
-    )
-
-
-@leaderboard_app.command("list")
-def leaderboard_list(
-    db: Annotated[Path, typer.Option(help="SQLite database path.")] = Path("artifacts/leaderboard.sqlite3"),
-    as_json: JsonFlag = False,
-) -> None:
-    """List leaderboard entries."""
-    from sentinel.storage.leaderboard import LeaderboardStore
-
-    entries = [e.public_dict() for e in LeaderboardStore(db).list()]
-    if as_json:
-        _emit_json(entries)
-        return
-    table = Table("rank", "name", "status", "split", "official", "eligible", "BTU", "ASR", "benchmark")
-    for i, e in enumerate(entries, start=1):
-        m = e.get("metrics") or {}
-        table.add_row(
-            str(i),
-            e["name"],
-            e["status"],
-            e["split"],
-            str(e.get("official_score")),
-            str(e.get("eligible")),
-            str(m.get("btu")),
-            str(m.get("asr")),
-            e["benchmark_version"],
-        )
-    console.print(table)
 
 
 if __name__ == "__main__":  # pragma: no cover

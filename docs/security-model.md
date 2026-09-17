@@ -17,30 +17,6 @@
    lets `sentinel eval` work as an honest self-test rather than something you could accidentally
    hard-code to.
 
-## Sandbox
-
-`sentinel.sandbox.policy.SandboxPolicy` is validated before any command is built, and
-`sentinel.sandbox.docker.build_run_command` produces:
-
-| Control | Flag |
-| --- | --- |
-| Non-root | `--user 10001:10001` (uid 0 rejected) |
-| No network | `--network none` (official mode allows only `sentinel-internal*` networks; `host`/`bridge` rejected) |
-| Memory | `--memory` and `--memory-swap` set to the same value |
-| CPU | `--cpus` |
-| Processes | `--pids-limit` |
-| Filesystem | `--read-only` plus `--tmpfs /tmp:rw,noexec,nosuid,nodev,size=...` |
-| Capabilities | `--cap-drop ALL` |
-| Privilege escalation | `--security-opt no-new-privileges:true` |
-| Model weights | read-only `--volume src:dst:ro` only |
-| Docker socket | never mounted; rejected at policy validation and again at command build |
-| Host paths | `/`, `/proc`, `/sys`, `/dev`, `/etc`, `/run`, `/var/run`, `/root`, `/home` rejected as mount sources |
-| Ports | published only on `127.0.0.1` and only with an internal network |
-| Timeout | enforced by the runner (`timeout_s`) |
-
-The unit tests check the generated command lines and do not need a Docker daemon. Organizers should
-still run `make docker-build` and a manual `docker run` smoke test on the evaluation host before launch.
-
 ## Participant input handling
 
 | Input | Safeguard |
@@ -52,8 +28,7 @@ still run `make docker-build` and a manual `docker run` smoke test on the evalua
 | Rewrites | cannot make an action final, cannot name an unknown tool; the policy engine still checks the result |
 | Attacker mutations | declared surface, allowed operation, `max_chars`, no control characters, budget |
 | Artifact names | sanitized to a single safe path component; files opened in exclusive-create mode |
-| Leaderboard | bearer token (constant-time compare) for writes; HTML escaped; aggregates only |
-| Submissions | Dockerfile non-root `USER`, no `docker.sock`/`--privileged`, manifest schema, secret patterns, private-scenario markers, escaping symlinks |
+| Submissions | Dockerfile non-root `USER`, no `docker.sock`/`--privileged`, manifest schema, secret patterns, escaping symlinks |
 
 ## Avoiding accidental hard-coding in self-testing
 

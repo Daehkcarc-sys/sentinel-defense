@@ -11,14 +11,10 @@ dist/
 build/
 *.egg-info/
 
-# Benchmark outputs and local configuration
+# Local outputs and configuration
 artifacts/
 competition.yaml
 .env
-
-# Hidden evaluation material must never be committed
-scenarios/private/
-private-scenarios/
 
 # Trained weights (declare and ship them in your submission image instead)
 *.joblib

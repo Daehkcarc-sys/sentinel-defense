@@ -157,10 +157,10 @@ Detection covers plain text, spacing/case changes, URL encoding, base64, hex, RO
 There is no held-out split in this challenge — the whole library under `scenarios/` is published,
 and judging does not run any scenario against your defense. If you want extra scenarios to
 sanity-check your own defense beyond what is published (for example, to check you have not
-overfit to the exact wording of the published set), author them exactly the same way with
-`split: private`, keep them outside this repository, and validate with
-`sentinel scenarios validate $SENTINEL_PRIVATE_SCENARIOS`. This is purely a self-testing aid; it has
-no effect on how you are scored.
+overfit to the exact wording of the published set), just author them the same way, anywhere on
+disk, and point the CLI at them directly: `sentinel scenarios validate path/to/my_scenarios` and
+`sentinel run --scenario path/to/my_scenarios/my_case.yaml --defense-url ...`. This is purely a
+self-testing aid; it has no effect on how you are scored.
 
 ## Checklist
 

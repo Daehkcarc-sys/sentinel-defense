@@ -7,15 +7,12 @@ from pathlib import Path
 import httpx
 import pytest
 
-from sentinel.api.attack_app import create_attack_app
 from sentinel.api.defense_app import create_defense_app
-from sentinel.attackers.baselines import MutationAttacker
-from sentinel.attackers.client import HttpAttacker
 from sentinel.config import CompetitionConfig, DefenseRuntimeConfig, FailMode
 from sentinel.core.actions import Decision
 from sentinel.defenses.baselines import ProvenanceDefense
 from sentinel.defenses.client import DefenseUnavailable, HttpDefense
-from sentinel.evaluator.runner import AttackMode, RunConfig, evaluate, load_suite, run_scenario
+from sentinel.evaluator.runner import RunConfig, evaluate, load_suite, run_scenario
 from sentinel.sandbox.submission import sample_defense_request, validate_submission
 from tests.conftest import PUBLIC, ROOT, load, tool_call
 from tests.integration.helpers import free_port, serve
@@ -71,13 +68,6 @@ def test_unreachable_defense_fails_closed() -> None:
     outcome = run_scenario(load("finance_false_approval"), HttpDefense(url, transport_retries=0), config).outcome
     assert not outcome.attack_success and not outcome.task_success
     assert all(d.decision is Decision.BLOCK and d.defense_error == "DefenseUnavailable" for d in outcome.decisions)
-
-
-def test_http_attacker_in_adaptive_arena() -> None:
-    with serve(create_attack_app(MutationAttacker)) as url:
-        config = RunConfig(root=ROOT, attack_mode=AttackMode.ADAPTIVE)
-        outcome = run_scenario(load("finance_split_settlement"), ProvenanceDefense(), config, HttpAttacker(url)).outcome
-    assert any(m.accepted for m in outcome.mutations)
 
 
 def test_live_submission_contract_checks() -> None:

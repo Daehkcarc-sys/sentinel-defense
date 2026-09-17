@@ -75,8 +75,10 @@ def test_optional_multipliers() -> None:
     assert disabled.ood_factor == 1.0
 
 
-def test_example_competition_config_is_non_final(tmp_path: Path) -> None:
-    config = load_competition(ROOT / "competition.example.yaml")
+def test_custom_diagnostic_config_is_validated(tmp_path: Path) -> None:
+    config_path = tmp_path / "competition.yaml"
+    config_path.write_text("scoring:\n  final: false\n")
+    config = load_competition(config_path)
     assert config.scoring.final is False
     bad = tmp_path / "competition.yaml"
     bad.write_text("scoring:\n  utility_gate: 3\n")

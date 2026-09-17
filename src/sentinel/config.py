@@ -1,4 +1,4 @@
-"""Competition configuration (competition.yaml): score weights, gates, limits, and runtime modes."""
+"""Optional local diagnostic configuration."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ class ArenaConfig(_Strict):
 
 
 class CompetitionConfig(_Strict):
-    name: str = "SENTINEL (example configuration)"
+    name: str = "SENTINEL local diagnostics"
     benchmark_version: str = BENCHMARK_VERSION
     run_seed: int = Field(default=0, ge=0)
     official_mode: bool = True
@@ -89,10 +89,8 @@ def find_root(start: Path | None = None) -> Path:
 def load_competition(path: Path | None = None, root: Path | None = None) -> CompetitionConfig:
     if path is None:
         base = root or find_root()
-        for name in ("competition.yaml", "competition.example.yaml"):
-            if (base / name).is_file():
-                path = base / name
-                break
+        if (base / "competition.yaml").is_file():
+            path = base / "competition.yaml"
     if path is None:
         return CompetitionConfig()
     try:

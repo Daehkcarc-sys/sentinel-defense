@@ -4,7 +4,7 @@ DEFENSE ?= provenance
 SCENARIO ?= scenarios/public/finance/finance_false_approval.yaml
 
 .PHONY: help setup lint format typecheck test test-security test-kits run-baseline eval-public \
-        eval-validation arena scenarios fixtures schema docker-build release-check release clean
+        eval-validation scenarios fixtures schema clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -43,9 +43,6 @@ eval-public: ## Deterministic scorecard on public scenarios (in-process baseline
 eval-validation: ## Scorecard on validation scenarios
 	$(UV) run sentinel eval validation --defense $(DEFENSE)
 
-arena: ## Adaptive red-team arena with the mutation attacker
-	$(UV) run sentinel arena run --defense $(DEFENSE) --attacker mutation
-
 scenarios: ## Validate all public and validation scenarios
 	$(UV) run sentinel scenarios validate scenarios
 
@@ -54,16 +51,6 @@ fixtures: ## Regenerate synthetic fixtures and public/validation scenarios
 
 schema: ## Export scenario JSON Schema
 	$(UV) run sentinel scenarios schema --out scenarios/schemas/scenario.schema.json
-
-docker-build: ## Build the organizer image and the starter-kit images
-	docker build -f infra/docker/Dockerfile -t sentinel-bench:local .
-	docker build -t sentinel-python-defense:local starter-kits/python-defense
-
-release-check: ## Verify the participant release contains no hidden material
-	$(UV) run python scripts/build_release.py --check
-
-release: ## Build dist/sentinel-bench-participant-<version>.tar.gz
-	$(UV) run python scripts/build_release.py
 
 clean: ## Remove generated artifacts and caches
 	rm -rf artifacts dist .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage
