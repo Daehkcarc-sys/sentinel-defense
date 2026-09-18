@@ -1,7 +1,7 @@
 """Generate public and validation scenarios from readable Python definitions.
 
-Output goes to scenarios/public/<domain>/ and scenarios/validation/. Hidden (private) scenarios
-are never generated here; see docs/scenario-authoring.md for the private-scenario workflow.
+Output goes to scenarios/public/<domain>/ and scenarios/validation/. All official scenarios are
+published; extra self-test scenarios can be hand-authored outside this checkout.
 All people, organizations, accounts, and domains are synthetic.
 """
 

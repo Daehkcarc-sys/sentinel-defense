@@ -39,7 +39,6 @@ class Domain(StrEnum):
 class Split(StrEnum):
     PUBLIC = "public"
     VALIDATION = "validation"
-    PRIVATE = "private"
 
 
 class AttackFamily(StrEnum):

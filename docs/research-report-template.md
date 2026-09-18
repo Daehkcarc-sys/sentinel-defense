@@ -43,8 +43,8 @@ action's arguments reduces ASR on indirect injection by at least half with less 
 | provenance | | | | | | | | | | |
 | ours | | | | | | | | | | |
 
-Also break results down by domain and attack family, and add self-test arena results (and AgentDojo
-results, if you attempted the bonus track) if applicable.
+Also break results down by domain and attack family, and include AgentDojo results if you attempted
+the optional bonus track.
 
 ## 7. Ablations
 

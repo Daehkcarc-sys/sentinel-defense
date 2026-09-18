@@ -1,7 +1,7 @@
 """Optional Hugging Face adapter for local open-weight instruct models.
 
 Install with ``uv sync --extra hf``. Nothing here is imported by the default test suite, and no
-weights are downloaded unless an organizer explicitly constructs this adapter with a model path.
+weights are downloaded unless the participant supplies a local model path.
 """
 
 from __future__ import annotations

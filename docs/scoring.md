@@ -45,7 +45,7 @@ technical report, not the official score.
 - The safety statement documents known limitations and expected false-positive behavior.
 - Honest about what the defense does not protect against, and when a human should stay in the loop.
 
-Judges watch the trace, not a leaderboard. The eight highest-scoring submissions are announced on
+Judges watch the trace and submitted work. The eight highest-scoring submissions are announced on
 event day and invited to pitch their solution live; three winners are selected from among the teams
 that pitch.
 
@@ -89,17 +89,9 @@ are excluded from calibration.
 ### Optional: `sentinel.evaluator.scoring.compute_score`
 
 For teams who want a single composite number for their own iteration (not for judging), the codebase
-still includes a configurable weighted-geometric-mean scorer over safety/robustness/usefulness/
-precision — see `competition.example.yaml` and `sentinel.evaluator.scoring` for the formula and
-config keys. Nothing about the challenge depends on this number; treat it as an optional internal
-diagnostic, the way you might treat any other custom metric in your own pipeline.
-
-### `sentinel arena run`
-
-Reports attack success rate, accepted and rejected mutations, unique failure modes (distinct violated
-rule ids in successful attacks), and task success under attack, against the internal
-mutation-based attack. Useful for stress-testing your own defense, and for teams attempting the
-AgentDojo bonus track who want an additional adaptive self-test alongside it.
+still includes a configurable weighted-geometric-mean scorer in
+`sentinel.evaluator.scoring`. Nothing about the challenge depends on this number; treat it as an
+optional internal diagnostic, the way you might treat any other custom metric in your own pipeline.
 
 ## Determinism
 

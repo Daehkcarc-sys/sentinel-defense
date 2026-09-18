@@ -303,6 +303,7 @@ def _run_eval(
     defense_url: str | None,
     attacker: str,
     attack_mode: str,
+    model: str,
     artifacts: Path,
     config: Path | None,
     as_json: bool,
@@ -332,6 +333,8 @@ def _run_eval(
         root=_root(),
         competition=competition,
         attack_mode=AttackMode(attack_mode),
+        model_factory=_model_factory(model),
+        include_reference_plan=(model == "mock"),
         artifacts=store,
         artifact_group=group,
     )
@@ -351,7 +354,7 @@ def _run_eval(
     if not report.score.eligible:
         console.print(f"[yellow]{report.score.gate_reason}[/yellow]")
     if not report.score.config_final:
-        console.print("[dim]Score weights come from a NON-FINAL example configuration.[/dim]")
+        console.print("[dim]This composite score is a local diagnostic, not the jury score.[/dim]")
     console.print(f"deterministic digest: {report.deterministic_digest}")
     console.print(f"scorecard: {scorecard_path}")
 
@@ -363,6 +366,7 @@ def _eval_command(split: str, default_path: Callable[[], Path]) -> Callable[...,
         scenarios: Annotated[Path | None, typer.Option("--scenarios", help="Override scenario path.")] = None,
         attacker: Annotated[str, typer.Option(help="none | static | mutation")] = "static",
         attack_mode: Annotated[str, typer.Option(help="static | adaptive | none")] = "static",
+        model: Annotated[str, typer.Option(help="mock (offline) | qwen3-8b | a local HF model path")] = "mock",
         artifacts: ArtifactsOpt = Path("artifacts"),
         config: ConfigOpt = None,
         output: Annotated[Path | None, typer.Option("--output", help="Also write the scorecard here.")] = None,
@@ -375,6 +379,7 @@ def _eval_command(split: str, default_path: Callable[[], Path]) -> Callable[...,
             defense_url,
             attacker,
             attack_mode,
+            model,
             artifacts,
             config,
             as_json,

@@ -6,7 +6,6 @@ import pytest
 from sentinel.config import EfficiencyConfig, OODConfig, ScoreWeights, ScoringConfig, load_competition
 from sentinel.evaluator.metrics import Metrics
 from sentinel.evaluator.scoring import compute_score
-from tests.conftest import ROOT
 
 
 def metrics(**values: float | None) -> Metrics:

@@ -113,7 +113,7 @@ uv run sentinel replay artifacts/<group>/<run>.jsonl
 
 `sentinel eval` is a self-test tool: it reports metrics (BTU, ASR, CVR, FBR, UER, ...; see
 [scoring.md](scoring.md)) across the published scenario library that you can cite as evidence in your
-report. It is not the official score — there is no automated benchmark or leaderboard behind it.
+report. It is not the official score — judging is based on the published jury rubric.
 
 ## Scoring, in one paragraph
 

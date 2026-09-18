@@ -1,7 +1,8 @@
 # Architecture
 
 SENTINEL is a small, typed Python package with explicit seams. The simulation core runs without
-HTTP or Docker; services and sandboxing wrap it.
+HTTP or Docker. The optional FastAPI defense adapter is only a convenience for teams who choose a
+service-based solution.
 
 This document describes the reference simulator and tooling every team receives — the synthetic
 world, the reference agent, the internal attack mechanism, and local self-test commands. It is not a
@@ -13,8 +14,8 @@ against your submission (see [scoring.md](scoring.md)).
 
 ```mermaid
 sequenceDiagram
-    participant E as Evaluator runner
-    participant X as Attacker
+    participant E as Simulator runner
+    participant X as Scenario attack
     participant V as Mutation validator
     participant A as Reference agent
     participant M as ModelAdapter
@@ -42,7 +43,7 @@ sequenceDiagram
         A->>P: attempt, executed, effects, sinks
         P-->>E: findings (policy_violation events)
     end
-    E->>E: graders -> outcome -> metrics -> score
+    E->>E: graders -> outcome -> local diagnostics
 ```
 
 ## Components and seams
@@ -51,7 +52,7 @@ sequenceDiagram
 | --- | --- | --- |
 | Model | `sentinel.models.base.ModelAdapter` | `MockModelAdapter` (default, offline), `HFModelAdapter` (optional extra) |
 | Defense | `sentinel.defenses.interface.Defense` | five baselines, `HttpDefense`, starter kits |
-| Attacker | `sentinel.attackers.interface.Attacker` | `StaticAttacker`, `MutationAttacker`, `HttpAttacker` |
+| Scenario attacks | `sentinel.attackers.interface.Attacker` | static and mutation fixtures |
 | Tools | `sentinel.tools.base.Tool` via `ToolRegistry` | 25 synthetic tools across 3 domains |
 | Graders | `SuccessCondition` types + `register_grader` | state-based graders; `SemanticGrader` protocol for later |
 | Storage | `ArtifactStore` | JSONL files |
@@ -120,8 +121,6 @@ recording the trace your video and report are built on.
 ## Services
 
 - `api/defense_app.py`: wraps any `Defense` in `GET /healthz` and `POST /v1/decision`.
-- `api/attack_app.py`: wraps an attacker factory in `GET /healthz` and `POST /v1/attack/next`, with
-  one session per scenario.
 
 ## Extending
 
@@ -131,6 +130,3 @@ recording the trace your video and report are built on.
   a fixture and a policy.
 - **New graders:** decorate a function with `@register_grader("name")` and use
   `{type: custom, grader: name}` in YAML.
-- **Distributed self-testing:** implement `SandboxRunner` for another backend (for example
-  Kubernetes Jobs) if you want to run `sentinel eval` against your own defense at scale. Nothing in
-  the core assumes a single host, but nothing in the challenge requires this either.

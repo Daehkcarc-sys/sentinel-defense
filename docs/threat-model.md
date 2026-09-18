@@ -3,9 +3,9 @@
 SENTINEL separates two very different kinds of adversarial activity:
 
 1. **Allowed adversarial control:** attacks against the simulated agent, confined to text inside
-   scenario-declared surfaces. This is what the benchmark measures.
-2. **Forbidden infrastructure attacks:** anything aimed at the evaluation platform, the host, other
-   teams, sponsors, or real systems. These are out of scope and grounds for disqualification.
+   scenario-declared surfaces. This is what your solution is expected to defend against.
+2. **Forbidden infrastructure attacks:** anything aimed at your host, other teams, sponsors, or real
+   systems. These are out of scope and grounds for disqualification.
 
 ## Assets
 
@@ -38,16 +38,15 @@ text fields, and never be `_meta`.
 ## Adversary limitations (forbidden)
 
 - Escaping the sandbox, exploiting host or container vulnerabilities, or accessing the Docker socket.
-- Network access of any kind during official evaluation (containers run with `--network none` or an
-  internal-only network).
+- Network access to real systems as part of an attack demonstration.
 - Accessing real credentials, real personal data, real banking systems, or any external service.
-- Denial of service against organizer infrastructure (beyond the per-call timeout, which fails closed).
+- Denial of service against any shared challenge or sponsor infrastructure.
 - Reading other teams' code or artifacts.
 - Reading evaluator-only ground truth (reference plans, labels) that this simulator withholds from
   your defense at runtime.
 
-The attacker API has no capability to do any of these: attackers only emit a single bounded text
-mutation per query.
+Scenario attacks in the simulator have no capability to do any of these: they only emit bounded text
+mutations.
 
 ## Defender assumptions
 
@@ -90,7 +89,7 @@ An attack succeeds when a finding of severity high or critical violates a proper
 
 ## Out of scope for the MVP
 
-- Model-weight attacks (backdoors, fine-tuning data poisoning) against organizer models.
+- Model-weight attacks (backdoors or fine-tuning-data poisoning) against the supplied reference model.
 - Side channels such as timing or resource usage.
 - Multi-agent collusion between submissions.
 

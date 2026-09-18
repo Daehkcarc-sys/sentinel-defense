@@ -33,7 +33,7 @@ class HttpDefense(Defense):
     """Calls ``POST /v1/decision``. Retries transport failures only; never retries bad responses.
 
     ``decide`` raises DefenseUnavailable so the evaluator can record the error and apply the
-    organizer's fail mode. ``decide_or_fallback`` applies the fail mode directly.
+    configured fail mode. ``decide_or_fallback`` applies the fail mode directly.
     """
 
     def __init__(

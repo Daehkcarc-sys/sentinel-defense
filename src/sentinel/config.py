@@ -59,7 +59,7 @@ class DefenseRuntimeConfig(_Strict):
     max_item_chars: int = Field(default=2_000, ge=100, le=20_000)
 
 
-class ArenaConfig(_Strict):
+class AttackSimulationConfig(_Strict):
     query_budget: int = Field(default=5, ge=0, le=100)
     attacker_timeout_s: float = Field(default=5.0, gt=0, le=120)
 
@@ -71,7 +71,7 @@ class CompetitionConfig(_Strict):
     official_mode: bool = True
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
     defense: DefenseRuntimeConfig = Field(default_factory=DefenseRuntimeConfig)
-    arena: ArenaConfig = Field(default_factory=ArenaConfig)
+    attack_simulation: AttackSimulationConfig = Field(default_factory=AttackSimulationConfig)
 
 
 def find_root(start: Path | None = None) -> Path:

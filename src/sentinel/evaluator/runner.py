@@ -27,7 +27,7 @@ from sentinel.core.result import (
     ScenarioOutcome,
     ToolExecution,
 )
-from sentinel.core.scenario import Scenario, Split, child_seed, discover_scenarios, load_scenario
+from sentinel.core.scenario import Scenario, child_seed, discover_scenarios, load_scenario
 from sentinel.core.state import WorldState
 from sentinel.defenses.interface import Defense
 from sentinel.evaluator.labels import PlanMatcher
@@ -280,7 +280,9 @@ def run_scenario(
     registry = registry_for_domain(scenario.domain.value)
     gateway = ToolGateway(registry, state)
     policy = PolicyEngine(load_policy(config.root, scenario.policy_profile), scenario)
-    hooks = EvaluationHooks(scenario, state, log, policy, attacker, config.attack_mode, competition.arena.query_budget)
+    hooks = EvaluationHooks(
+        scenario, state, log, policy, attacker, config.attack_mode, competition.attack_simulation.query_budget
+    )
     hooks.bind_registry(gateway)
     policy_context: dict[str, Any] = policy.defense_context(registry.as_dict())
     internal_domain = state.settings.get("internal_email_domain")
@@ -364,12 +366,8 @@ class EvaluationReport(BaseModel):
     outcomes: list[ScenarioOutcome] | None = None
 
     def participant_view(self) -> dict[str, Any]:
-        """Hidden splits never expose per-scenario outcomes or per-domain breakdowns."""
-        data = self.model_dump(mode="json")
-        if self.split in (Split.PRIVATE.value, "mixed"):
-            data["outcomes"] = None
-            data["by_domain"] = {}
-        return data
+        """Return the complete local self-test report."""
+        return self.model_dump(mode="json")
 
 
 def _digest(outcomes: Sequence[ScenarioOutcome], metrics: Metrics) -> str:

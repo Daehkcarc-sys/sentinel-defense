@@ -544,8 +544,7 @@
     "Split": {
       "enum": [
         "public",
-        "validation",
-        "private"
+        "validation"
       ],
       "title": "Split",
       "type": "string"

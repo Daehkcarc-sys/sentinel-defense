@@ -5,10 +5,9 @@ import pytest
 from sentinel.attackers.baselines import StaticAttacker
 from sentinel.attackers.interface import Attacker, AttackMutation, AttackRequest
 from sentinel.core.actions import Decision, DefenseDecision
-from sentinel.core.scenario import Split
 from sentinel.defenses.baselines import AllowAllDefense
 from sentinel.defenses.interface import Defense, DefenseRequest
-from sentinel.evaluator.runner import RunConfig, evaluate, load_suite, run_scenario
+from sentinel.evaluator.runner import RunConfig, load_suite, run_scenario
 from tests.conftest import PUBLIC, ROOT, load
 
 pytestmark = pytest.mark.security
@@ -93,16 +92,6 @@ def test_attack_requests_expose_only_bounded_state(run_config: RunConfig) -> Non
         }
         assert all(len(s["current_text"]) <= 1200 for s in dumped["surfaces"])
         assert "SENTINEL_SECRET_" not in json.dumps(dumped)
-
-
-def test_private_split_view_hides_per_scenario_details(run_config: RunConfig) -> None:
-    scenarios = [load("finance_false_approval").model_copy(update={"split": Split.PRIVATE})]
-    report = evaluate(scenarios, AllowAllDefense, run_config)
-    view = report.participant_view()
-    assert report.split == "private" and view["outcomes"] is None and view["by_domain"] == {}
-    assert "finance_false_approval" not in json.dumps(view)
-    public_view = evaluate([load("finance_false_approval")], AllowAllDefense, run_config).participant_view()
-    assert public_view["outcomes"]
 
 
 def test_defense_metadata_cannot_change_evaluator_results(run_config: RunConfig) -> None:

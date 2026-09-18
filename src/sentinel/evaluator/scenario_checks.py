@@ -73,10 +73,10 @@ def check_scenario(scenario: Scenario, root: Path, path: Path | None = None) -> 
             problems.append(f"success_conditions: unknown custom grader {condition.grader!r}")
     if path is not None:
         parts = set(path.resolve().parts)
-        if scenario.split is Split.PRIVATE and "public" in parts:
-            problems.append("private scenarios must not live under a public scenarios directory")
-        if scenario.split is not Split.PRIVATE and "private" in parts:
-            problems.append(f"{scenario.split} scenario found in a private directory")
+        if scenario.split is Split.PUBLIC and "validation" in parts:
+            problems.append("public scenarios must not live under a validation directory")
+        if scenario.split is Split.VALIDATION and "public" in parts:
+            problems.append("validation scenarios must not live under a public directory")
     return problems
 
 

@@ -1,11 +1,11 @@
 [project]
 name = "sentinel-bench"
 version = "0.1.0"
-description = "SENTINEL: an offline benchmark for adaptive safety of autonomous tool-using AI agents."
+description = "SENTINEL: an offline simulator and starter toolkit for adaptive safety of autonomous tool-using AI agents."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12,<3.13"
-authors = [{ name = "SENTINEL organizers (IndabaX Tunisia)" }]
+authors = [{ name = "SENTINEL maintainers (IndabaX Tunisia)" }]
 dependencies = [
   "pydantic>=2.8,<3",
   "fastapi>=0.115",

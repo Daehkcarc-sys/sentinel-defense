@@ -97,9 +97,8 @@ however you choose and wire your own observability layer around it.
 
 ## Self-test tooling
 
-These commands are for your own development and evidence-gathering — there is no organizer-run
-automated benchmark or leaderboard behind them, and no numeric score they produce is the official
-score:
+These commands are for your own development and evidence-gathering. There is no automated official
+score; judges assess your submitted work against the published rubric:
 
 | Command | What it does |
 | --- | --- |
@@ -107,11 +106,10 @@ score:
 | `sentinel scenarios list PATH` | Scenario inventory (`--json`) |
 | `sentinel run --scenario PATH --defense MODE [--model mock\|qwen3-8b]` | One scenario with timeline and artifact |
 | `sentinel eval public --defense MODE\|--defense-url URL` | Metrics across the published scenario library, for your own report |
-| `sentinel arena run --defense MODE --attacker mutation` | Optional adaptive self-test; also relevant if you attempt the AgentDojo bonus track |
 | `sentinel replay ARTIFACT` | Human-readable timeline (`--json`) — this is the evidence your video and report cite |
 | `sentinel submission validate PATH_OR_IMAGE [--live-url URL]` | Optional static/contract checks, useful if you containerize |
 | `sentinel fixtures generate [--scenarios]` | Regenerate deterministic fixtures and scenarios |
-| `sentinel serve defense\|attacker\|leaderboard` | HTTP services, useful for local development |
+| `sentinel serve defense` | Local baseline-defense service, useful for development |
 
 The metrics `sentinel eval` reports (BTU, ASR, CVR, FBR, UER, ...) are defined in
 [docs/scoring.md](docs/scoring.md) and are good evidence for your technical report's results section
@@ -130,14 +128,13 @@ src/sentinel/
   defenses/    Defense interface, HTTP client with fail modes, five baselines
   attackers/   internal scenario-attack mechanism: mutation validator, static and mutation baselines
   evaluator/   runner, labels, task/policy graders, leak detection, metrics, replay
-  api/         FastAPI apps: defense, attacker, leaderboard (local dev tooling)
-  sandbox/     sandbox policy, docker command builder, runners, submission validation (optional)
-  storage/     JSONL artifacts, SQLite leaderboard (local dev tooling)
+  api/         FastAPI defense app (optional local development tooling)
+  sandbox/     optional static validation of a defense directory or image
+  storage/     JSONL run artifacts
 scenarios/     the full published scenario library
 fixtures/      synthetic world data per domain
 policies/      machine-readable policy per domain
 starter-kits/  python-defense, learned-monitor (optional scaffolding)
-infra/         optional Dockerfile and systemd examples for local self-testing
 scripts/       fixture/scenario generators, submission validation
 tests/         unit, integration, security
 docs/          architecture, guides, threat and security models, scoring, authoring, report template
@@ -146,20 +143,19 @@ docs/          architecture, guides, threat and security models, scoring, author
 ## Developer commands
 
 `make setup`, `make lint`, `make format`, `make typecheck`, `make test`, `make test-security`,
-`make test-kits`, `make run-baseline`, `make eval-public`, `make arena`, `make scenarios`,
-`make fixtures`, `make schema`, `make docker-build`.
+`make test-kits`, `make run-baseline`, `make eval-public`, `make scenarios`, `make fixtures`,
+`make schema`.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Participant guide](docs/participant-guide.md)
-- [Organizer guide](docs/organizer-guide.md)
 - [Threat model](docs/threat-model.md)
 - [Security model](docs/security-model.md)
 - [Scoring](docs/scoring.md)
 - [Scenario authoring](docs/scenario-authoring.md)
 - [Research report template](docs/research-report-template.md)
-- [Security policy](SECURITY.md) and [contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
 
 ## Important dates
 
