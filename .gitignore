@@ -20,3 +20,8 @@ competition.yaml
 *.joblib
 *.safetensors
 *.bin
+presentations/
+presentation-assets/
+
+.deck-build/
+.deck-notes-build/
