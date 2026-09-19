@@ -70,7 +70,12 @@ uv run sentinel replay artifacts/<eval-group>/<run_id>.jsonl
 
 Baselines: `allow_all`, `deny_sensitive`, `keyword`, `heuristic_risk`, `provenance`. `--model` selects
 the reference agent's underlying model (`mock` by default, or `qwen3-8b`); `mock` is fast for
-iterating on your decision logic, `qwen3-8b` is what your video and trace should be built on.
+iterating on your decision logic.
+
+Whichever model you record with, first confirm it reaches the attack at all: run the scenario with
+`--defense allow_all`, and expect `attack_success=True`. If an undefended run reports `False`, the
+agent never opened the injected record and every later number is meaningless. See
+[docs/participant-guide.md](docs/participant-guide.md#check-your-setup-actually-exercises-the-scenario).
 
 ## Build your defense
 

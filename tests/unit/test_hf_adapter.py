@@ -2,7 +2,13 @@ import pytest
 
 from sentinel.core.actions import ActionType
 from sentinel.models.base import ModelError
-from sentinel.models.hf_adapter import DEFAULT_MODEL, parse_action, resolve_runtime
+from sentinel.models.hf_adapter import (
+    DEFAULT_MODEL,
+    SYSTEM_PROMPT,
+    parse_action,
+    resolve_runtime,
+    tool_card,
+)
 
 
 def test_default_reference_model_is_qwen3_8b() -> None:
@@ -21,6 +27,27 @@ def test_default_reference_model_is_qwen3_8b() -> None:
 )
 def test_resolve_runtime(device: str, dtype: str, cuda: bool, expected: tuple[str, str]) -> None:
     assert resolve_runtime(device, dtype, cuda) == expected
+
+
+def test_tool_card_keeps_the_argument_schema_the_model_must_satisfy() -> None:
+    from sentinel.domains.finance.tools import PaymentConfirm, PaymentPrepare
+
+    card = tool_card(PaymentPrepare().spec())
+    assert card["name"] == "payment_prepare"
+    # preparing does not move money; confirming does, and the model is told which is which
+    assert card["consequential"] is False
+    assert tool_card(PaymentConfirm().spec())["consequential"] is True
+    # the model has to produce these names, and account/beneficiary ids have to match their patterns
+    assert set(card["arguments"]) == {"account_id", "beneficiary_id", "amount", "reference"}
+    assert set(card["required"]) == {"account_id", "beneficiary_id", "amount", "reference"}
+    assert card["arguments"]["account_id"]["pattern"] == r"^ACC-\d{4}$"
+
+
+def test_system_prompt_tells_the_agent_to_finish_the_work_first() -> None:
+    # a real model with no reference plan will otherwise answer from the goal text and stop
+    # before it ever opens the record the attack was injected into
+    assert "before you finish" in SYSTEM_PROMPT
+    assert "exact argument names" in SYSTEM_PROMPT
 
 
 def test_parse_action_reads_a_plain_json_action() -> None:
