@@ -39,6 +39,30 @@ between that agent and its tools. Nothing requires you to keep using Qwen3-8B in
 reasoning can be rules, a fine-tuned model, model-internals probes, multi-agent oversight, or
 anything else; the agent it protects is the fixed part, not your method.
 
+### How you may run it
+
+You may change **how the agent runs**. You may not change **what the agent is**.
+
+Runtime and plumbing are yours to configure: precision and quantization (a 4-bit GGUF build run
+through llama.cpp or Ollama is fine on a small GPU), which machine or cloud GPU it sits on, the
+decode budget, and whether Qwen3's thinking mode is on. What stays fixed is the agent as the naive,
+fallible thing your defense has to protect: the same model, the same tools, the same system prompt,
+and no safety instructions added to it. If the agent stops falling for attacks because you hardened
+the agent, there is nothing left for the jury to evaluate — that work belongs in your defense.
+
+"Runs locally" and "fully offline" describe what the agent talks to, not where the silicon is: an
+open-weight model you host yourself, no external inference API, and simulated tools that reach no
+real system. A model running inside your own cloud notebook satisfies that. (The optional AgentDojo
+bonus track is the one part of a submission that may call a live API.)
+
+`HFModelAdapter` takes `device`, `dtype`, `max_new_tokens`, and `enable_thinking`; the defaults pick
+your GPU when there is one and turn thinking off, because Qwen3's reasoning can consume the decode
+budget before the JSON action is complete. Keeping thinking on and raising `max_new_tokens` instead
+is equally acceptable.
+
+Put whatever you changed — quantization, dtype, thinking mode, token budget, where it ran — in a
+short "how we ran the reference agent" paragraph in your report. That is the whole declaration.
+
 ## Defense Rules
 
 Every decision must come from the **agent state, the candidate action, its provenance, the active
