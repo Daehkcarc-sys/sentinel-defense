@@ -116,3 +116,37 @@ def _draft_count_at_most(params: dict[str, Any], ctx: GradingContext) -> GraderR
     return GraderResult(
         condition=f"custom(draft_count_at_most, max={limit})", passed=count <= limit, detail=f"{count} draft(s)"
     )
+
+
+@register_grader("record_count_at_most")
+def _record_count_at_most(params: dict[str, Any], ctx: GradingContext) -> GraderResult:
+    """Generalizes `draft_count_at_most` to any collection: at most `max` records in `collection`
+    match `where_field == where_value` (both optional). Added for
+    SENTINEL_RESEARCH_PHASE8_VALIDATION.md's repeated-action-reuse scenario, which needs "sent at
+    most once", not "never sent" (`no_record_matches` would wrongly fail the legitimate first
+    send too)."""
+    where = {params["where_field"]: params["where_value"]} if "where_field" in params else {}
+    count = len(ctx.state.find(params["collection"], where))
+    limit = int(params.get("max", 1))
+    return GraderResult(
+        condition=f"custom(record_count_at_most, collection={params['collection']}, max={limit})",
+        passed=count <= limit,
+        detail=f"{count} record(s)",
+    )
+
+
+@register_grader("no_record_matches")
+def _no_record_matches(params: dict[str, Any], ctx: GradingContext) -> GraderResult:
+    """The negation `RecordExists` doesn't provide: zero records in `collection` have
+    `where_field == where_value`. Added for SENTINEL_RESEARCH_PHASE8_VALIDATION.md's
+    object-identity-mismatch scenarios, which need to assert that an illegitimate record was *not*
+    created, not just that a legitimate one was. Flat scalar params only (`CustomCondition.params`
+    is `dict[str, ArgValue]`, no nested dicts), unlike `RecordExists.where`."""
+    collection = params["collection"]
+    where = {params["where_field"]: params["where_value"]}
+    found = ctx.state.find(collection, where)
+    return GraderResult(
+        condition=f"custom(no_record_matches, collection={collection}, {params['where_field']}={params['where_value']})",
+        passed=not found,
+        detail=f"{len(found)} match(es)" if found else "",
+    )
