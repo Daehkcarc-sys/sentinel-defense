@@ -65,7 +65,7 @@ needs `uv sync --extra hf` and the weights downloaded ahead of time.
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense allow_all
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance --model qwen3-8b
-uv run sentinel replay artifacts/<eval-group>/<run_id>.jsonl
+uv run sentinel replay artifacts/<group>/<run>.jsonl
 ```
 
 Baselines: `allow_all`, `deny_sensitive`, `keyword`, `heuristic_risk`, `provenance`. `--model` selects
@@ -79,10 +79,22 @@ agent never opened the injected record and every later number is meaningless. Se
 
 ## Build your defense
 
+The rule-based kit is self-contained — copy it anywhere and edit `app/decision.py`:
+
 ```bash
-cp -r starter-kits/python-defense ../my-defense   # or: cp -r starter-kits/learned-monitor ../my-defense
-# edit the decision logic
-cd ../my-defense && uv venv && uv pip install -r requirements.txt && uv run uvicorn app.main:app --port 8080
+cp -r starter-kits/python-defense ../my-defense
+cd ../my-defense && uv venv && uv pip install -r requirements.txt
+uv run uvicorn app.main:app --port 8080
+```
+
+The learned kit trains against this scenario library, so train it inside this checkout first
+(`monitor/train.py` imports `sentinel`); the resulting `model/monitor.joblib` is what the service
+and the Dockerfile load:
+
+```bash
+cd starter-kits/learned-monitor
+uv run python -m monitor.train                    # writes model/monitor.joblib
+uv run uvicorn monitor.app:create_app --factory --port 8080
 ```
 
 Then, from this repository, run it against the reference agent and record the trace your video and
@@ -91,7 +103,7 @@ report are built around:
 ```bash
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml \
   --defense-url http://127.0.0.1:8080 --model qwen3-8b
-uv run sentinel replay artifacts/<run_id>.jsonl
+uv run sentinel replay artifacts/<group>/<run>.jsonl
 ```
 
 See [docs/participant-guide.md](docs/participant-guide.md) and the starter kits:
