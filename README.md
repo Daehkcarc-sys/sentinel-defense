@@ -1,5 +1,67 @@
 # SENTINEL: Adaptive Safety for Autonomous AI Agents
 
+## Our team's defense (read this first)
+
+This fork/clone tracks the organizer's [`Skan22/Sentinel_Starter_Kit`](https://github.com/Skan22/Sentinel_Starter_Kit)
+starter kit unmodified, plus **our own defense implementation** on top of it. If you're picking this
+up to help with the video, report, or further testing, start here.
+
+**Where the code is:** `src/sentinel/defenses/baselines/authority_core.py`, registered in `BASELINES`
+as `authority_core`, `authority_core_state`, `authority_core_evidence`, `authority_core_full`
+(Phase 7/8 ablation arms), and `authority_core_auth`, `authority_core_field`,
+`authority_core_decision`, `authority_core_v2_full`, `authority_core_decision_block`,
+`authority_core_goal`, **`authority_core_v3_full`** (v2/v3 mechanisms — `v3_full` is the one to run
+for the demo and the report).
+
+**Run it:**
+
+```bash
+uv run sentinel run --scenario scenarios/self_authored/soc_incident_object_mismatch.yaml \
+  --defense authority_core_v3_full
+uv run sentinel replay artifacts/<eval-group>/<run_id>.jsonl
+# against the real reference agent (needs weights + a GPU):
+uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml \
+  --defense authority_core_v3_full --model qwen3-8b
+```
+
+**Current result** (full 36-scenario corpus: 19 public + 9 validation + 8 self-authored, under
+`scenarios/self_authored/`): `authority_core_v3_full` holds **BTU=1.000, DSR=1.000, zero critical
+violations** — every published and self-authored attack is stopped, with no benign-task regressions.
+
+**What the defense actually does**, in one paragraph: authority to take an action comes only from
+structural, verifiable facts (allowed tools, confirmations, policy) and never from the content of
+what the agent has observed — content can determine *what* the agent wants to do, never *whether*
+it's authorized. On top of that non-additive policy core sit four narrow, independently-toggleable
+mechanisms: authorization-binding (an exact action can't be silently re-executed once it's already
+run), field-level evidence (a value sourced only from an untrusted part of a mixed-trust response is
+flagged even if the rest of that response is trusted), decision-relevance tiering (a flagged value
+that operationally parameterizes a consequential action is treated more seriously than one that's
+merely mentioned in a note), and goal-declared object consistency (an action can't silently retarget
+a different object than the one the user's own authenticated request actually named).
+
+**Why it looks this narrow:** every piece here survived a real falsification test against the full
+scenario corpus — several more ambitious ideas (a global cross-tool prerequisite graph, a semantic
+LLM monitor, task-contract-as-authorization) were built, tested, and explicitly killed because they
+either regressed a real benign scenario or added no measurable detection power. That process, and
+the full results/ablation tables, are written up in our research repo, not this one (kept separate
+because this repo mirrors the organizer's own):
+[`Daehkcarc-sys/Indaba`](https://github.com/Daehkcarc-sys/Indaba) — start with
+`SENTINEL_RESEARCH_V2_ARCHITECTURE.md` (includes the v3 addendum with the latest results) and
+`SENTINEL_RESEARCH_PHASE8_VALIDATION.md` (the falsification methodology).
+
+**Tests:** `tests/unit/test_authority_core.py`, `test_authority_core_v2.py`, `test_authority_core_v3.py`
+(54 tests). Run with `uv run pytest tests/unit/test_authority_core*.py -q`.
+
+**Known open items** (see the research repo for detail): live Qwen3-8B validation is thin because of
+a known tool-schema adapter bug (`qwen_eval/quantized_adapter.py`, not in this repo); the
+decision-relevant BLOCK upgrade is implemented and unit-tested but never actually fires anywhere in
+the real 36-scenario corpus, so it shouldn't be oversold as a proven detector; goal-declared object
+consistency is only demonstrated in the SOC domain so far. No video or final technical report has
+been produced yet — that's the next work.
+
+---
+
+
 SENTINEL is a research challenge for IndabaX Tunisia. Each team builds **one defense solution** —
 built however they choose — that lets a tool-using LLM agent finish legitimate work while an
 adversary manipulates its environment, plus an **observability layer** that makes the defense's
