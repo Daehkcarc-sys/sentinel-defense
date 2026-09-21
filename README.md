@@ -24,20 +24,29 @@ uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.y
   --defense authority_core_v3_full --model qwen3-8b
 ```
 
-**Current result** (full 36-scenario corpus: 19 public + 9 validation + 8 self-authored, under
-`scenarios/self_authored/`): `authority_core_v3_full` holds **BTU=1.000, DSR=1.000, zero critical
-violations** — every published and self-authored attack is stopped, with no benign-task regressions.
+**Current result** (full 57-scenario corpus, after pulling the organizer's 2026-09-20 update: 40
+public + 9 validation + 8 self-authored, under `scenarios/self_authored/`): `authority_core_v3_full`
+holds **BTU=1.000, DSR=1.000, zero critical violations** — every published and self-authored attack
+is stopped, with no benign-task regressions. That update added 21 attacks specifically tuned against
+a real Qwen3-8B (mock-model attack success was only 0.10; the new set reaches 0.74) — re-running our
+ablation against it immediately dropped our DSR to 0.417, which found a real gap: our sink check only
+watched outbound email, and the new attacks exfiltrate into internal record writes and the agent's
+own final response instead. Fixed with a destination-independent RESTRICTED-sensitivity check (see
+the research repo's addendum) — closed with zero benign regressions.
 
 **What the defense actually does**, in one paragraph: authority to take an action comes only from
-structural, verifiable facts (allowed tools, confirmations, policy) and never from the content of
-what the agent has observed — content can determine *what* the agent wants to do, never *whether*
-it's authorized. On top of that non-additive policy core sit four narrow, independently-toggleable
-mechanisms: authorization-binding (an exact action can't be silently re-executed once it's already
-run), field-level evidence (a value sourced only from an untrusted part of a mixed-trust response is
-flagged even if the rest of that response is trusted), decision-relevance tiering (a flagged value
-that operationally parameterizes a consequential action is treated more seriously than one that's
-merely mentioned in a note), and goal-declared object consistency (an action can't silently retarget
-a different object than the one the user's own authenticated request actually named).
+structural, verifiable facts (allowed tools, confirmations, policy, provenance sensitivity) and never
+from the content of what the agent has observed — content can determine *what* the agent wants to
+do, never *whether* it's authorized. A non-additive policy core enforces tool permission,
+confirmation requirements, and a destination-independent block on RESTRICTED-sensitivity disclosure
+(covers internal record writes and the agent's own final response, not just outbound email). On top
+of it sit four narrow, independently-toggleable mechanisms: authorization-binding (an exact action
+can't be silently re-executed once it's already run), field-level evidence (a value sourced only
+from an untrusted part of a mixed-trust response is flagged even if the rest of that response is
+trusted), decision-relevance tiering (a flagged value that operationally parameterizes a
+consequential action is treated more seriously than one that's merely mentioned in a note), and
+goal-declared object consistency (an action can't silently retarget a different object than the one
+the user's own authenticated request actually named).
 
 **Why it looks this narrow:** every piece here survived a real falsification test against the full
 scenario corpus — several more ambitious ideas (a global cross-tool prerequisite graph, a semantic
@@ -50,14 +59,16 @@ because this repo mirrors the organizer's own):
 `SENTINEL_RESEARCH_PHASE8_VALIDATION.md` (the falsification methodology).
 
 **Tests:** `tests/unit/test_authority_core.py`, `test_authority_core_v2.py`, `test_authority_core_v3.py`
-(54 tests). Run with `uv run pytest tests/unit/test_authority_core*.py -q`.
+(65 tests). Run with `uv run pytest tests/unit/test_authority_core*.py -q`.
 
-**Known open items** (see the research repo for detail): live Qwen3-8B validation is thin because of
-a known tool-schema adapter bug (`qwen_eval/quantized_adapter.py`, not in this repo); the
-decision-relevant BLOCK upgrade is implemented and unit-tested but never actually fires anywhere in
-the real 36-scenario corpus, so it shouldn't be oversold as a proven detector; goal-declared object
-consistency is only demonstrated in the SOC domain so far. No video or final technical report has
-been produced yet — that's the next work.
+**Known open items** (see the research repo for detail): live Qwen3-8B validation is still being
+re-verified against the organizer's 2026-09-20 adapter fixes (GPU default, thinking off, larger
+decode budget, `<think>`-stripping) and the new `--model ollama:qwen3:8b` path — our own prior
+attempts were inconclusive because of a since-acknowledged kit bug where the agent could answer from
+the goal text without ever calling a tool; the decision-relevant BLOCK upgrade is implemented and
+unit-tested but never actually fires anywhere in the real corpus, so it shouldn't be oversold as a
+proven detector; goal-declared object consistency is only demonstrated in the SOC domain so far. No
+video or final technical report has been produced yet — that's the next work.
 
 ---
 
