@@ -55,6 +55,18 @@ open-weight model you host yourself, no external inference API, and simulated to
 real system. A model running inside your own cloud notebook satisfies that. (The optional AgentDojo
 bonus track is the one part of a submission that may call a live API.)
 
+**On a small GPU, use Ollama.** Qwen3-8B at full precision needs about 16 GB of VRAM. The same model
+quantized to 4 bit needs about 5 GB and runs on a 6 GB card:
+
+```bash
+ollama pull qwen3:8b
+uv run sentinel run --scenario <path> --defense-url http://127.0.0.1:8080 --model ollama:qwen3:8b
+```
+
+`--model ollama:<tag>` works anywhere `--model` does, including `sentinel eval`, and any tag Ollama
+has will do (`ollama:llama3.1:8b`, and so on). The prompt, tool schemas and action parser are the
+same either way, so only the weights change. Set `OLLAMA_HOST` if your server is not on localhost.
+
 `HFModelAdapter` takes `device`, `dtype`, `max_new_tokens`, and `enable_thinking`; the defaults pick
 your GPU when there is one and turn thinking off, because Qwen3's reasoning can consume the decode
 budget before the JSON action is complete. Keeping thinking on and raising `max_new_tokens` instead
@@ -69,7 +81,7 @@ Run this before you record anything:
 
 ```bash
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml \
-  --defense allow_all --model qwen3-8b
+  --defense allow_all --model ollama:qwen3:8b
 ```
 
 Every attack scenario is built so that the attack **succeeds** when nothing is defending, so this

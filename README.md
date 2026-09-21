@@ -64,13 +64,14 @@ needs `uv sync --extra hf` and the weights downloaded ahead of time.
 ```bash
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense allow_all
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance
-uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance --model qwen3-8b
+uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml --defense provenance --model ollama:qwen3:8b
 uv run sentinel replay artifacts/<group>/<run>.jsonl
 ```
 
-Baselines: `allow_all`, `deny_sensitive`, `keyword`, `heuristic_risk`, `provenance`. `--model` selects
-the reference agent's underlying model (`mock` by default, or `qwen3-8b`); `mock` is fast for
-iterating on your decision logic.
+Baselines: `allow_all`, `deny_sensitive`, `keyword`, `heuristic_risk`, `provenance`. `--model` selects the
+reference agent's underlying model: `mock` (default, fast for iterating on your decision logic),
+`ollama:qwen3:8b` (4-bit, ~5 GB of VRAM, needs `ollama pull qwen3:8b`), or `qwen3-8b` for
+full-precision weights through transformers.
 
 Whichever model you record with, first confirm it reaches the attack at all: run the scenario with
 `--defense allow_all`, and expect `attack_success=True`. If an undefended run reports `False`, the
@@ -102,7 +103,7 @@ report are built around:
 
 ```bash
 uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.yaml \
-  --defense-url http://127.0.0.1:8080 --model qwen3-8b
+  --defense-url http://127.0.0.1:8080 --model ollama:qwen3:8b
 uv run sentinel replay artifacts/<group>/<run>.jsonl
 ```
 
@@ -121,7 +122,7 @@ score; judges assess your submitted work against the published rubric:
 | --- | --- |
 | `sentinel scenarios validate PATH` | Schema, fixture, policy, tool, and surface checks (`--json`) |
 | `sentinel scenarios list PATH` | Scenario inventory (`--json`) |
-| `sentinel run --scenario PATH --defense MODE [--model mock\|qwen3-8b]` | One scenario with timeline and artifact |
+| `sentinel run --scenario PATH --defense MODE [--model mock\|ollama:qwen3:8b]` | One scenario with timeline and artifact |
 | `sentinel eval public --defense MODE\|--defense-url URL` | Metrics across the published scenario library, for your own report |
 | `sentinel replay ARTIFACT` | Human-readable timeline (`--json`) — this is the evidence your video and report cite |
 | `sentinel submission validate PATH_OR_IMAGE [--live-url URL]` | Optional static/contract checks, useful if you containerize |
