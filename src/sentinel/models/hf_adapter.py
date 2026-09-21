@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Collection
 from typing import Any
 
 from pydantic import ValidationError
@@ -76,14 +77,26 @@ def resolve_runtime(device: str, dtype: str, cuda_available: bool) -> tuple[str,
     return resolved_device, resolved_dtype
 
 
-def parse_action(text: str) -> CandidateAction:
-    """Extract the first complete JSON object from model output and validate it as an action."""
+def parse_action(text: str, known_tools: Collection[str] = ()) -> CandidateAction:
+    """Extract the first complete JSON object from model output and validate it as an action.
+
+    Smaller models routinely write ``{"type": "incident_create", ...}`` -- the tool name where the
+    action type belongs. That is read as the tool call it plainly is, but only when the name is one
+    of this scenario's own tools, so a genuinely malformed type can never be coerced into a call to
+    something that does not exist.
+    """
     body = THINK_TAIL.sub("", THINK_BLOCK.sub("", text))
     start = body.find("{")
     if start < 0:
         raise ModelError(NO_JSON)
     try:
         payload, _ = json.JSONDecoder().raw_decode(body, start)
+        kind = payload.get("type") if isinstance(payload, dict) else None
+        if isinstance(kind, str) and kind in known_tools:
+            arguments = payload.get("arguments")
+            if not isinstance(arguments, dict):
+                arguments = {k: v for k, v in payload.items() if k not in ("type", "arguments")}
+            payload = {"type": "tool_call", "tool": kind, "arguments": arguments}
         return CandidateAction.model_validate(payload)
     except (json.JSONDecodeError, ValidationError) as exc:
         raise ModelError(f"invalid action from model: {exc}") from exc
@@ -142,7 +155,7 @@ class HFModelAdapter(ModelAdapter):
         inputs = self._tokenizer([prompt], return_tensors="pt").to(self._model.device)
         output = self._model.generate(**inputs, max_new_tokens=self._max_new_tokens, do_sample=False)
         text = self._tokenizer.decode(output[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True)
-        return parse_action(text)
+        return parse_action(text, {str(t["name"]) for t in self._tools})
 
     def observe(self, feedback: Feedback) -> None:
         return None
