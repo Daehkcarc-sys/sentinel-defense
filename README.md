@@ -24,15 +24,22 @@ uv run sentinel run --scenario scenarios/public/finance/finance_false_approval.y
   --defense authority_core_v3_full --model qwen3-8b
 ```
 
-**Current result** (full 57-scenario corpus, after pulling the organizer's 2026-09-20 update: 40
-public + 9 validation + 8 self-authored, under `scenarios/self_authored/`): `authority_core_v3_full`
-holds **BTU=1.000, DSR=1.000, zero critical violations** — every published and self-authored attack
-is stopped, with no benign-task regressions. That update added 21 attacks specifically tuned against
-a real Qwen3-8B (mock-model attack success was only 0.10; the new set reaches 0.74) — re-running our
-ablation against it immediately dropped our DSR to 0.417, which found a real gap: our sink check only
-watched outbound email, and the new attacks exfiltrate into internal record writes and the agent's
-own final response instead. Fixed with a destination-independent RESTRICTED-sensitivity check (see
-the research repo's addendum) — closed with zero benign regressions.
+**Current result** (full 61-scenario corpus: 40 public + 9 validation + 12 self-authored, under
+`scenarios/self_authored/`): `authority_core_v3_full` holds **BTU=1.000, DSR=1.000, zero critical
+violations** on the mock model — every published and self-authored attack is stopped, with no
+benign-task regressions.
+
+**Live Qwen3-8B, full corpus (`ollama:qwen3:8b`, `scripts/qwen_full_corpus_run.py`): DSR = 22/22 =
+1.000, zero critical violations** — every attack that genuinely reached the agent on real weights
+was stopped, independently confirming the mock-model result on live hardware. Live BTU (0.652) is
+lower, but every one of the 8 benign shortfalls was individually traced: 7 are pure base-model
+competency issues (a hallucinated id, an incomplete response, a lookup the model didn't retry),
+with the defense `ALLOW`ing every single decision on those runs; the 8th is an already-documented
+harness confound. Zero of the 8 were caused by the defense. One real live-model bug was found and
+fixed along the way — a short opaque secret disclosed in the model's own free-form prose slipped
+past a fixed-window overlap check the mock model's templated responses never exercised (see the
+research repo's addenda for the full story, including the earlier RESTRICTED-sensitivity gap the
+organizer's 2026-09-20 kit update exposed).
 
 **What the defense actually does**, in one paragraph: authority to take an action comes only from
 structural, verifiable facts (allowed tools, confirmations, policy, provenance sensitivity) and never
@@ -61,14 +68,15 @@ because this repo mirrors the organizer's own):
 **Tests:** `tests/unit/test_authority_core.py`, `test_authority_core_v2.py`, `test_authority_core_v3.py`
 (65 tests). Run with `uv run pytest tests/unit/test_authority_core*.py -q`.
 
-**Known open items** (see the research repo for detail): live Qwen3-8B validation is still being
-re-verified against the organizer's 2026-09-20 adapter fixes (GPU default, thinking off, larger
-decode budget, `<think>`-stripping) and the new `--model ollama:qwen3:8b` path — our own prior
-attempts were inconclusive because of a since-acknowledged kit bug where the agent could answer from
-the goal text without ever calling a tool; the decision-relevant BLOCK upgrade is implemented and
-unit-tested but never actually fires anywhere in the real corpus, so it shouldn't be oversold as a
-proven detector; goal-declared object consistency is only demonstrated in the SOC domain so far. No
-video or final technical report has been produced yet — that's the next work.
+**Known open items** (see the research repo for detail): the decision-relevant BLOCK upgrade is
+implemented and unit-tested but never actually fires anywhere in the real corpus, mock or live, so
+it shouldn't be oversold as a proven detector; goal-declared object consistency generalizes to
+finance/enterprise but its marginal value inside `v3_full` is currently concentrated in SOC's
+`alert_id` (Component C already covers 3-6-letter prefixes independently); the real model doesn't
+always recover with a safe answer after a block the way the scripted mock model does (observed on
+one live scenario). An interactive HTML observability dashboard now exists
+(`scripts/render_dashboard.py`) alongside the single-run report generator. No video has been
+produced yet — that's the next work.
 
 ---
 
