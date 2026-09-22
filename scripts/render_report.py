@@ -615,9 +615,9 @@ def render(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenari
 </div></header>
 <div class="wrap">
 
-  <div class="verdicts">{"".join(pills)}</div>
-  {attack_banner}
   {goal_html}
+  {attack_banner}
+  <div class="verdicts">{"".join(pills)}</div>
 
   <div class="card">
     <h2>Decisions this run</h2>
