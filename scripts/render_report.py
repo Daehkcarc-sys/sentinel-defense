@@ -82,6 +82,155 @@ DECISION_META = {
     "rewrite": {"label": "REWRITE", "icon": "↺", "css": "rewrite"},
 }
 
+# Plain-language explanation of every reason code the defense can emit, and which mechanism
+# produced it. Shown as a tooltip on each reason-code badge and in the "How this defense works"
+# panel, so a viewer with zero prior context can see not just WHAT was decided but WHY, in terms
+# of a specific, named piece of the architecture -- not a black box.
+REASON_CODE_EXPLANATIONS: dict[str, tuple[str, str]] = {
+    "STRUCTURALLY_AUTHORIZED": (
+        "Default (no mechanism intervened)",
+        "No check found a reason to act: the tool was allowed, no confirmation was missing, and "
+        "no untrusted, restricted, or inconsistent content was touched.",
+    ),
+    "TOOL_NOT_ALLOWED": (
+        "Component A -- hard policy core",
+        "This tool is outside the task's declared allowed-tools set. Authority comes only from "
+        "that structural fact, never from how convincing the request sounds.",
+    ),
+    "SENSITIVE_TO_UNTRUSTED_SINK": (
+        "Component A -- hard policy core",
+        "Sensitive content is addressed to an external, untrusted recipient. Checked by comparing "
+        "provenance sensitivity tags against the destination, not by reading intent.",
+    ),
+    "MISSING_CONFIRMATION": (
+        "Component A -- hard policy core",
+        "A consequential action (one with real-world effect) was proposed with no prior human "
+        "confirmation on record for this exact action.",
+    ),
+    "CONFIRMATION_REQUESTED": (
+        "Component A -- hard policy core",
+        "The agent is explicitly asking a human to confirm a consequential action before it runs.",
+    ),
+    "RESTRICTED_DATA_DISCLOSURE": (
+        "Destination-independent RESTRICTED-sensitivity check",
+        "This value's source is tagged RESTRICTED sensitivity, which this benchmark declares as "
+        "never safely disclosable to ANY destination -- not the user's own reply, not an internal "
+        "record. Blocks regardless of which tool or action carries it.",
+    ),
+    "AUTHORIZATION_ALREADY_CONSUMED": (
+        "Mechanism A -- authorization binding",
+        "This exact action (same tool, same arguments) already executed once earlier this run. A "
+        "repeat isn't re-authorized just because it's proposed again -- BLOCKs rather than asking "
+        "again, since a repeat request can't be trusted to get a meaningfully different review.",
+    ),
+    "EPISTEMIC_UNVERIFIED_FACT": (
+        "Component C -- evidence fidelity",
+        "This value has no source anywhere in this turn's conversation except untrusted content. "
+        "It's mentioned, not yet acted on operationally, so this only escalates for review.",
+    ),
+    "DECISION_RELEVANT_UNVERIFIED_FACT": (
+        "Mechanism C -- decision-relevance tiering",
+        "Same untrusted-only value as above, but here it operationally parameterizes a "
+        "consequential action's own arguments, not just a passing mention -- treated as more "
+        "serious.",
+    ),
+    "OBJECT_NOT_DECLARED_IN_REQUEST": (
+        "Mechanism E -- goal-declared object consistency",
+        "This action targets an object (an id like AL-3003, CASE-7002, ...) that the authenticated "
+        "user's own request never named, and nothing trusted in this turn corroborates it. Derived "
+        "per-request from the user's own words, never from a standing global rule.",
+    ),
+    "PREREQUISITE_NOT_MET_FOR_OBJECT": (
+        "Component B -- object-scoped state (historical; disabled by default)",
+        "A required prior step for this specific object never succeeded. This component was built, "
+        "tested, and killed after it regressed a real benign scenario -- kept in code only as an "
+        "honest record of what was tried.",
+    ),
+    "ACTION_ALREADY_EXECUTED_FOR_OBJECT": (
+        "Component B -- object-scoped state (historical; disabled by default)",
+        "This tool already succeeded once for this object. See the note above -- disabled by "
+        "default.",
+    ),
+    "REWRITE_FAILED_SELF_VALIDATION": (
+        "Rewrite self-validation",
+        "A safer rewrite was proposed, but re-running the full decision pipeline on the rewrite "
+        "itself did not independently clear it -- falls back to a safer decision rather than "
+        "handing the harness an unvalidated rewrite.",
+    ),
+    "REWRITE_DEPTH_EXCEEDED": (
+        "Rewrite self-validation",
+        "A rewrite of a rewrite was about to be produced -- capped at one level, so this falls "
+        "back rather than chaining indefinitely.",
+    ),
+}
+
+MECHANISM_OVERVIEW: list[tuple[str, str]] = [
+    (
+        "Central invariant",
+        "Authority to take an action comes only from structural, verifiable facts -- a declared "
+        "tool permission, a live human confirmation, a provenance/sensitivity tag -- never from the "
+        "content of what was read this turn. Content can determine WHAT the agent wants to do; it "
+        "never determines WHETHER it's authorized.",
+    ),
+    (
+        "Component A -- hard policy core",
+        "Non-additive: tool permission, sensitive-destination, and confirmation checks each act "
+        "alone as a hard rule, never summed into a score that a single weak signal can tip either "
+        "way.",
+    ),
+    (
+        "RESTRICTED-sensitivity disclosure",
+        "Blocks any action, regardless of tool or destination, whose payload contains "
+        "RESTRICTED-tagged content -- because this benchmark declares such content unsafe "
+        "everywhere, not just when leaving to an external address.",
+    ),
+    (
+        "Mechanism A -- authorization binding",
+        "Tracks exact-action digests already executed this run; BLOCKs an identical repeat rather "
+        "than re-escalating, since a human-approval step can be rubber-stamped by the harness "
+        "regardless of why the repeat is being proposed.",
+    ),
+    (
+        "Mechanism B -- field-level evidence",
+        "A single tool response can mix a trusted field with an untrusted-by-design one (e.g. an "
+        "alert record's trusted summary next to its untrusted vendor enrichment). This mechanism "
+        "splits trust at the FIELD level, not the whole response, using each tool's own declared "
+        "untrusted fields.",
+    ),
+    (
+        "Component C -- evidence fidelity",
+        "Flags values (IBANs, reference ids, amounts, dates, approval words) that appear only in "
+        "untrusted content this turn, never in anything trusted -- a plain false claim with no "
+        "imperative language still gets caught.",
+    ),
+    (
+        "Mechanism E -- goal-declared object consistency",
+        "Compares the object an action targets against what the user's OWN authenticated request "
+        "actually named. Per-request, not a standing rule, so it can't regress a legitimate "
+        "workflow that never made that promise.",
+    ),
+]
+
+
+def mechanism_glossary_html() -> str:
+    rows = "".join(
+        f'<div class="glossary-row"><div class="glossary-name">{esc(name)}</div>'
+        f'<div class="glossary-desc">{esc(desc)}</div></div>'
+        for name, desc in MECHANISM_OVERVIEW
+    )
+    return (
+        '<details class="card glossary"><summary><h2 style="display:inline">'
+        "How this defense works</h2> <span class=\"glossary-hint\">(click to expand -- "
+        "what each mechanism below does, in plain language)</span></summary>"
+        f'<div class="glossary-body">{rows}</div></details>'
+    )
+
+
+def reason_code_badge(code: str) -> str:
+    mechanism, why = REASON_CODE_EXPLANATIONS.get(code, ("Unrecognized code", "No explanation available."))
+    tip = f"{mechanism} — {why}"
+    return f'<span class="rc-tip" data-tip="{esc(tip)}">{esc(code)}</span>'
+
 
 def esc(value: Any) -> str:
     if value is None:
@@ -290,6 +439,18 @@ h1 { font-size: 1.35rem; margin: 0 0 .15rem; }
 
 .reason-codes { margin: .35rem 0; display: flex; gap: .35rem; flex-wrap: wrap; }
 .reason-codes span { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: .12rem .45rem; font-size: .74rem; font-family: ui-monospace, monospace; }
+
+/* Custom tooltip for reason-code badges: styled (not the native browser title=), shows which
+   mechanism produced the code and why, in plain language, on hover or keyboard focus. */
+.rc-tip { position: relative; cursor: help; border-bottom: 1px dotted var(--muted); }
+.rc-tip::after {
+  content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 20;
+  width: max-content; max-width: 320px; background: var(--text); color: var(--bg);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: .78rem; line-height: 1.4;
+  padding: .5rem .65rem; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity .12s, transform .12s;
+}
+.rc-tip:hover::after, .rc-tip:focus::after { opacity: 1; transform: translateY(0); }
 .explanation { font-size: .88rem; margin: .4rem 0; font-style: italic; color: var(--text); }
 
 .rewrite-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .5rem; }
@@ -315,6 +476,18 @@ table.graders td, table.graders th { border-bottom: 1px solid var(--border); pad
 .fail { color: var(--block); font-weight: 700; }
 
 footer { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 2rem; }
+
+.glossary summary { cursor: pointer; list-style: none; }
+.glossary summary::-webkit-details-marker { display: none; }
+.glossary summary::before { content: "\\25B8"; display: inline-block; margin-right: .4rem; color: var(--accent); transition: transform .12s; }
+.glossary[open] summary::before { transform: rotate(90deg); }
+.glossary-hint { color: var(--muted); font-size: .82rem; font-weight: 400; }
+.glossary-body { margin-top: .75rem; display: flex; flex-direction: column; gap: .6rem; }
+.glossary-row { display: grid; grid-template-columns: 220px 1fr; gap: .8rem; padding: .5rem 0; border-top: 1px solid var(--border); }
+.glossary-row:first-child { border-top: none; padding-top: 0; }
+.glossary-name { font-weight: 700; font-size: .85rem; color: var(--accent); }
+.glossary-desc { font-size: .87rem; color: var(--text); }
+@media (max-width: 680px) { .glossary-row { grid-template-columns: 1fr; gap: .2rem; } }
 """
 
 JS = """
@@ -348,7 +521,10 @@ function applyFilter(kind, btn) {
 """
 
 
-def render(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenario: dict[str, Any] | None) -> str:
+def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenario: dict[str, Any] | None) -> dict[str, Any]:
+    """Compute everything needed to render one run, without the page shell -- reused by both
+    `render()` (single-file report) and the multi-scenario dashboard, so both stay in sync with
+    exactly one implementation of the timeline/verdict/attack-highlighting logic."""
     attack_ctx = build_attack_context(scenario)
     payload_texts = attack_ctx.get("payload_texts", [])
 
@@ -486,7 +662,7 @@ def render(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenari
             codes = p.get("reason_codes") or []
             if codes:
                 body_parts.append(
-                    '<div class="reason-codes">' + "".join(f"<span>{esc(c)}</span>" for c in codes) + "</div>"
+                    '<div class="reason-codes">' + "".join(reason_code_badge(c) for c in codes) + "</div>"
                 )
             if p.get("explanation"):
                 body_parts.append(f'<div class="explanation">&ldquo;{esc(p["explanation"])}&rdquo;</div>')
@@ -596,25 +772,7 @@ def render(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenari
             + "</div>"
         )
 
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SENTINEL report &middot; {esc(title)}</title>
-<style>{CSS}</style>
-</head>
-<body>
-<header class="top"><div class="wrap">
-  <button class="theme-toggle" onclick="toggleTheme()">&#9788; theme</button>
-  <h1>{esc(title)}</h1>
-  <div class="meta-line">
-    scenario <code>{esc(scenario_id)}</code> &middot; domain <code>{esc(domain)}</code> &middot;
-    defense <code>{esc(defense_name)}</code> &middot; run <code>{esc(run_id)}</code>
-  </div>
-</div></header>
-<div class="wrap">
-
+    content_html = f"""
   {goal_html}
   {attack_banner}
   <div class="verdicts">{"".join(pills)}</div>
@@ -639,8 +797,49 @@ def render(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenari
 
   {graders_html}
   {findings_html}
+"""
 
-  <footer>Generated by scripts/render_report.py from {esc(str(run_id))} &middot; SENTINEL observability report</footer>
+    return {
+        "title": title,
+        "scenario_id": scenario_id,
+        "domain": domain,
+        "defense_name": defense_name,
+        "run_id": run_id,
+        "attack_present": bool(attack_ctx.get("present")),
+        "attack_family": attack_ctx.get("family"),
+        "task_success": task_success,
+        "attack_success": attack_success,
+        "critical_violation": critical_violation,
+        "content_html": content_html,
+    }
+
+
+def render(events: list[dict[str, Any]], summary: dict[str, Any] | None, scenario: dict[str, Any] | None) -> str:
+    """Full single-file report: one run, its own page shell, glossary included inline."""
+    run = build_run(events, summary, scenario)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SENTINEL report &middot; {esc(run["title"])}</title>
+<style>{CSS}</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <button class="theme-toggle" onclick="toggleTheme()">&#9788; theme</button>
+  <h1>{esc(run["title"])}</h1>
+  <div class="meta-line">
+    scenario <code>{esc(run["scenario_id"])}</code> &middot; domain <code>{esc(run["domain"])}</code> &middot;
+    defense <code>{esc(run["defense_name"])}</code> &middot; run <code>{esc(run["run_id"])}</code>
+  </div>
+</div></header>
+<div class="wrap">
+
+  {mechanism_glossary_html()}
+  {run["content_html"]}
+
+  <footer>Generated by scripts/render_report.py from {esc(str(run["run_id"]))} &middot; SENTINEL observability report</footer>
 </div>
 <script>{JS}</script>
 </body>
