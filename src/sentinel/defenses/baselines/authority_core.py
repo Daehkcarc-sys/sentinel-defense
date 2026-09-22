@@ -480,6 +480,23 @@ class AuthorityCoreDefense(Defense):
             (enable_auth_binding, enable_field_evidence, enable_decision_relevance)
         ):
             self.name = "authority_core_full"
+        if (
+            not enable_state
+            and all(
+                (
+                    enable_evidence, enable_encoded, enable_auth_binding, enable_field_evidence,
+                    enable_decision_relevance, enable_decision_block, enable_goal_consistency,
+                    enable_goal_consistency_block,
+                )
+            )
+        ):
+            # The auto-generated name above (every enabled flag concatenated) exceeded Windows'
+            # 260-char path limit once this arm grew to 8 flags, silently truncating artifact
+            # filenames (found while generating demo observability reports: a run's own .jsonl
+            # got written as-truncated-to-".js", breaking replay/rendering downstream). A short,
+            # stable name for the one arm actually meant to be run and recorded avoids this
+            # regardless of how many more flags get added later.
+            self.name = "authority_core_v3_full"
         self._state = _ObjectState()
         self._bindings = _AuthBindings()
 
