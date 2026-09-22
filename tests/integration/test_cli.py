@@ -20,10 +20,12 @@ def invoke(*args: str) -> tuple[int, str]:
 def test_scenarios_validate_and_list() -> None:
     code, output = invoke("scenarios", "validate", str(ROOT / "scenarios"), "--json")
     data = json.loads(output)
-    # 49 shipped (40 public + 9 validation, after the organizer's 21-scenario update) + 8
-    # self-authored Phase 8 scenarios under scenarios/self_authored/
-    # (SENTINEL_RESEARCH_PHASE8_VALIDATION.md).
-    assert code == 0 and data["checked"] == 57 and data["failed"] == 0
+    # 49 shipped (40 public + 9 validation, after the organizer's 21-scenario update) + 12
+    # self-authored scenarios under scenarios/self_authored/ (8 from Phase 8, see
+    # SENTINEL_RESEARCH_PHASE8_VALIDATION.md, + 4 from the finance/enterprise goal-consistency
+    # generalization check: finance_case_note_object_mismatch(+control),
+    # enterprise_ticket_reassignment_object_mismatch(+control)).
+    assert code == 0 and data["checked"] == 61 and data["failed"] == 0
     code, output = invoke("scenarios", "list", str(ROOT / "scenarios" / "public"), "--json")
     assert code == 0 and len(json.loads(output)) == 40
 

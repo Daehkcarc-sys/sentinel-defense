@@ -14,6 +14,7 @@ from sentinel.defenses.baselines.authority_core import (
     authority_core_field,
     authority_core_full,
     authority_core_goal,
+    authority_core_goal_block,
     authority_core_state,
     authority_core_v2_full,
     authority_core_v3_full,
@@ -40,6 +41,7 @@ BASELINES: dict[str, Callable[[], Defense]] = {
     "authority_core_v2_full": authority_core_v2_full,
     "authority_core_decision_block": authority_core_decision_block,
     "authority_core_goal": authority_core_goal,
+    "authority_core_goal_block": authority_core_goal_block,
     "authority_core_v3_full": authority_core_v3_full,
 }
 
