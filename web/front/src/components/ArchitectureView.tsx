@@ -1,14 +1,6 @@
-import { useEffect, useState } from "react"
-import { motion } from "motion/react"
-import { fetchArchitecture, type MechanismEntry } from "@/lib/api"
+import { PipelineDiagram } from "@/components/PipelineDiagram"
 
 export function ArchitectureView() {
-  const [items, setItems] = useState<MechanismEntry[]>([])
-
-  useEffect(() => {
-    fetchArchitecture().then(setItems)
-  }, [])
-
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -21,32 +13,7 @@ export function ArchitectureView() {
         </p>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="overflow-hidden rounded-xl border border-border bg-white p-2"
-      >
-        <img
-          src="/architecture-diagram.png"
-          alt="SENTINEL Hybrid decision pipeline: Authority Core plus sentinel_hybrid's three conjunction-gated block rules and two self-revalidating repair mechanisms, four decision outputs, and the REWRITE re-validation loop"
-          className="w-full rounded-lg"
-        />
-      </motion.div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {items.map((m, i) => (
-          <motion.div
-            key={m.name}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
-            className="rounded-xl border border-border bg-card p-4"
-          >
-            <h3 className="mb-1.5 text-sm font-semibold text-foreground">{m.name}</h3>
-            <p className="text-xs leading-relaxed text-muted-foreground">{m.description}</p>
-          </motion.div>
-        ))}
-      </div>
+      <PipelineDiagram />
 
       <div className="rounded-xl border border-border bg-card p-4 text-xs leading-relaxed text-muted-foreground">
         <span className="font-semibold text-foreground">Evidence, not assertion:</span> every claim above
