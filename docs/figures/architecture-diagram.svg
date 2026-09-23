@@ -1,0 +1,234 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1520" viewBox="0 0 1100 1520" font-family="Arial, Helvetica, sans-serif">
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#222222"/>
+    </marker>
+    <marker id="arrowGrey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666666"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="1520" fill="#ffffff"/>
+
+  <!-- ============ TITLE ============ -->
+  <text x="550" y="34" text-anchor="middle" font-size="21" font-weight="bold" fill="#111111">SENTINEL Defense Pipeline — sentinel_hybrid</text>
+  <text x="550" y="53" text-anchor="middle" font-size="12" font-style="italic" fill="#444444">One deterministic decision path: Authority Core (base policy kernel) + sentinel_hybrid (narrow, conjunction-gated additions)</text>
+
+  <!-- ============ ROW: Agent action ============ -->
+  <rect x="400" y="70" width="300" height="46" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+  <text x="550" y="98" text-anchor="middle" font-size="13" font-weight="bold" fill="#111111">Agent proposes candidate action</text>
+
+  <line x1="550" y1="116" x2="550" y2="150" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ ROW: Canonical index ============ -->
+  <rect x="150" y="150" width="800" height="66" rx="6" fill="#f3f5f7" stroke="#333333" stroke-width="1.5"/>
+  <text x="550" y="172" text-anchor="middle" font-size="13.5" font-weight="bold" fill="#111111">Canonical Provenance / Source Index  (shared foundation)</text>
+  <text x="550" y="190" text-anchor="middle" font-size="10.5" fill="#333333">Trust level · sensitivity tag · source type · provenance id — resolved ONCE per field, before any decision logic runs</text>
+  <text x="550" y="205" text-anchor="middle" font-size="10.5" font-style="italic" fill="#555555">Both layers below read this same index — they cannot disagree about where a value came from</text>
+
+  <line x1="550" y1="216" x2="550" y2="248" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ OUTER FRAME: Defense.decide() ============ -->
+  <rect x="90" y="248" width="920" height="656" rx="8" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <text x="112" y="272" font-size="13.5" font-weight="bold" fill="#111111">Defense.decide()</text>
+  <text x="112" y="287" font-size="10" font-style="italic" fill="#555555">single deterministic path — no voting ensemble, no LLM judge, no weighted scoring</text>
+
+  <!-- Layer 1: Authority Core -->
+  <rect x="120" y="296" width="860" height="228" rx="6" fill="#eef3f9" stroke="#1f3a5f" stroke-width="1.75"/>
+  <text x="550" y="316" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f3a5f">LAYER 1 · AUTHORITY CORE  (authority_core_v3_full — base policy kernel, unchanged)</text>
+
+  <!-- Row 1 of 3 boxes -->
+  <g font-size="9.3" fill="#16324f">
+    <rect x="136" y="328" width="264" height="82" rx="4" fill="#ffffff" stroke="#1f3a5f" stroke-width="1"/>
+    <text x="268" y="343" text-anchor="middle" font-weight="bold">Structural tool authorization</text>
+    <text x="268" y="357" text-anchor="middle">Is this tool in the task's</text>
+    <text x="268" y="369" text-anchor="middle">allowed-tools set?</text>
+
+    <rect x="418" y="328" width="264" height="82" rx="4" fill="#ffffff" stroke="#1f3a5f" stroke-width="1"/>
+    <text x="550" y="343" text-anchor="middle" font-weight="bold">Confirmation requirement</text>
+    <text x="550" y="357" text-anchor="middle">Consequential actions need a</text>
+    <text x="550" y="369" text-anchor="middle">prior human confirmation on record</text>
+
+    <rect x="700" y="328" width="264" height="82" rx="4" fill="#ffffff" stroke="#1f3a5f" stroke-width="1"/>
+    <text x="832" y="343" text-anchor="middle" font-weight="bold">Destination-independent</text>
+    <text x="832" y="357" text-anchor="middle">RESTRICTED-disclosure check</text>
+    <text x="832" y="369" text-anchor="middle">never disclosed to ANY destination,</text>
+    <text x="832" y="381" text-anchor="middle">incl. the agent's own final reply</text>
+  </g>
+
+  <!-- Row 2 of 3 boxes -->
+  <g font-size="9.3" fill="#16324f">
+    <rect x="136" y="418" width="264" height="94" rx="4" fill="#ffffff" stroke="#1f3a5f" stroke-width="1"/>
+    <text x="268" y="433" text-anchor="middle" font-weight="bold">Authorization-consumption</text>
+    <text x="268" y="446" text-anchor="middle" font-weight="bold">binding</text>
+    <text x="268" y="461" text-anchor="middle">An exact action can't be silently</text>
+    <text x="268" y="473" text-anchor="middle">re-executed once already run</text>
+
+    <rect x="418" y="418" width="264" height="94" rx="4" fill="#ffffff" stroke="#1f3a5f" stroke-width="1"/>
+    <text x="550" y="433" text-anchor="middle" font-weight="bold">Evidence-fidelity tiering</text>
+    <text x="550" y="448" text-anchor="middle">A value sourced only from untrusted</text>
+    <text x="550" y="460" text-anchor="middle">content is flagged — more so if it</text>
+    <text x="550" y="472" text-anchor="middle">parameterizes a consequential action</text>
+
+    <rect x="700" y="418" width="264" height="94" rx="4" fill="#ffffff" stroke="#1f3a5f" stroke-width="1"/>
+    <text x="832" y="433" text-anchor="middle" font-weight="bold">Goal-declared object</text>
+    <text x="832" y="446" text-anchor="middle" font-weight="bold">consistency</text>
+    <text x="832" y="461" text-anchor="middle">Can't retarget an object (alert,</text>
+    <text x="832" y="473" text-anchor="middle">case id) the user's request never named</text>
+  </g>
+
+  <!-- Separator -->
+  <line x1="150" y1="536" x2="950" y2="536" stroke="#888888" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="550" y="551" text-anchor="middle" font-size="9.5" font-style="italic" fill="#555555">layered on top — reads the same index — adds narrow rules — cannot override or weaken Layer 1</text>
+  <line x1="550" y1="556" x2="550" y2="568" stroke="#666666" stroke-width="1.25" marker-end="url(#arrowGrey)"/>
+
+  <!-- Layer 2: sentinel_hybrid additions -->
+  <rect x="120" y="572" width="860" height="322" rx="6" fill="#eaf5f2" stroke="#0f6b5c" stroke-width="1.75"/>
+  <text x="550" y="592" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#0f6b5c">LAYER 2 · sentinel_hybrid ADDITIONS  (narrow, conjunction-gated — production path)</text>
+
+  <!-- Left column: BLOCK rules -->
+  <rect x="136" y="604" width="404" height="250" rx="5" fill="#ffffff" stroke="#0f6b5c" stroke-width="1"/>
+  <text x="338" y="622" text-anchor="middle" font-size="10.8" font-weight="bold" fill="#0f6b5c">Conjunction-gated BLOCK rules</text>
+  <text x="338" y="635" text-anchor="middle" font-size="9" font-style="italic" fill="#555555">ALL conditions must hold — keeps false positives low</text>
+
+  <g font-size="9.2" fill="#123">
+    <text x="150" y="655" font-weight="bold">a. Untrusted control selector</text>
+    <text x="158" y="667">Operational selector/parameter (e.g. which</text>
+    <text x="158" y="678">action to take) supported ONLY by untrusted evidence</text>
+
+    <text x="150" y="698" font-weight="bold">b. Untrusted operational expansion</text>
+    <text x="158" y="710">Untrusted object expansion combined with a</text>
+    <text x="158" y="721">workflow disposition requiring review</text>
+
+    <text x="150" y="741" font-weight="bold">c. Attacker-selected sensitive sink</text>
+    <text x="158" y="753">Sensitive-data lineage flowing to a destination</text>
+    <text x="158" y="764">itself selected only by untrusted content</text>
+  </g>
+  <rect x="150" y="780" width="374" height="62" rx="4" fill="#fbfbfb" stroke="#0f6b5c" stroke-width="0.75" stroke-dasharray="2,2"/>
+  <text x="338" y="795" text-anchor="middle" font-size="8.6" fill="#333333">Any one rule matching, on its own conjunction</text>
+  <text x="338" y="807" text-anchor="middle" font-size="8.6" fill="#333333">of conditions, yields a targeted BLOCK — added</text>
+  <text x="338" y="819" text-anchor="middle" font-size="8.6" fill="#333333">on top of, never instead of, Layer 1's checks</text>
+
+  <!-- Right column: REPAIR mechanisms -->
+  <rect x="560" y="604" width="404" height="250" rx="5" fill="#ffffff" stroke="#0f6b5c" stroke-width="1"/>
+  <text x="762" y="622" text-anchor="middle" font-size="10.8" font-weight="bold" fill="#0f6b5c">Self-revalidating REPAIR mechanisms</text>
+  <text x="762" y="635" text-anchor="middle" font-size="9" font-style="italic" fill="#555555">produce REWRITE decisions, not BLOCK</text>
+
+  <g font-size="9.2" fill="#123">
+    <text x="574" y="655" font-weight="bold">a. Restricted-response redaction</text>
+    <text x="582" y="667">If Layer 1 would BLOCK a final response purely</text>
+    <text x="582" y="678">for one recognized RESTRICTED value, redact</text>
+    <text x="582" y="689">only that value and re-validate the rewritten</text>
+    <text x="582" y="700">response through the FULL pipeline again</text>
+
+    <text x="574" y="720" font-weight="bold">b. Grounded control repair</text>
+    <text x="582" y="732">If a closed-vocabulary control parameter is</text>
+    <text x="582" y="743">attacker-only, replace it with the one alternative</text>
+    <text x="582" y="754">grounded in trusted/runtime evidence — only if</text>
+    <text x="582" y="765">EXACTLY ONE exists; else no guess, falls back to BLOCK</text>
+  </g>
+  <rect x="574" y="780" width="374" height="62" rx="4" fill="#fbfbfb" stroke="#0f6b5c" stroke-width="0.75" stroke-dasharray="2,2"/>
+  <text x="762" y="795" text-anchor="middle" font-size="8.6" fill="#333333">Every repair is re-run through Layer 1 + Layer 2</text>
+  <text x="762" y="807" text-anchor="middle" font-size="8.6" fill="#333333">before release. A repair that cannot independently</text>
+  <text x="762" y="819" text-anchor="middle" font-size="8.6" fill="#333333">clear both is rejected — falls back to the safer decision</text>
+
+  <text x="550" y="878" text-anchor="middle" font-size="9.3" fill="#333333">Layer 1 runs first / underneath — Layer 2 only adds narrow additional blocks or safe repairs on top, never overrides or weakens it</text>
+
+  <!-- ============ Arrows from outer frame down to 4 outputs ============ -->
+  <line x1="550" y1="904" x2="550" y2="924" stroke="#222222" stroke-width="1.5"/>
+  <line x1="213" y1="924" x2="887" y2="924" stroke="#222222" stroke-width="1.5"/>
+  <line x1="213" y1="924" x2="213" y2="952" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="438" y1="924" x2="438" y2="952" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="663" y1="924" x2="663" y2="952" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="887" y1="924" x2="887" y2="952" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ 4 OUTPUT BOXES ============ -->
+  <!-- ALLOW -->
+  <rect x="113" y="952" width="200" height="72" rx="6" fill="#e8f5e9" stroke="#1e7d32" stroke-width="2.25"/>
+  <text x="213" y="984" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e7d32">ALLOW</text>
+  <text x="213" y="1000" text-anchor="middle" font-size="8.8" fill="#1e5a26">no rule matched</text>
+  <text x="213" y="1011" text-anchor="middle" font-size="8.8" fill="#1e5a26">proceed to tool execution</text>
+
+  <!-- BLOCK -->
+  <rect x="338" y="952" width="200" height="72" rx="6" fill="#fdecea" stroke="#c62828" stroke-width="2.25"/>
+  <text x="438" y="984" text-anchor="middle" font-size="16" font-weight="bold" fill="#c62828">BLOCK</text>
+  <text x="438" y="1000" text-anchor="middle" font-size="8.8" fill="#8e1c1c">Layer 1 or Layer 2</text>
+  <text x="438" y="1011" text-anchor="middle" font-size="8.8" fill="#8e1c1c">conjunction-gated rule fired</text>
+
+  <!-- ESCALATE -->
+  <rect x="563" y="952" width="200" height="72" rx="6" fill="#fff3e0" stroke="#e6720e" stroke-width="2.25"/>
+  <text x="663" y="984" text-anchor="middle" font-size="16" font-weight="bold" fill="#c15a00">ESCALATE</text>
+  <text x="663" y="1000" text-anchor="middle" font-size="8.8" fill="#8a4200">ask a human</text>
+  <text x="663" y="1011" text-anchor="middle" font-size="8.8" fill="#8a4200">confirmation on record required</text>
+
+  <!-- REWRITE -->
+  <rect x="788" y="952" width="200" height="72" rx="6" fill="#eeeafc" stroke="#5e35b1" stroke-width="2.25"/>
+  <text x="888" y="984" text-anchor="middle" font-size="16" font-weight="bold" fill="#5e35b1">REWRITE</text>
+  <text x="888" y="1000" text-anchor="middle" font-size="8.8" fill="#3c2277">repair-and-recheck</text>
+  <text x="888" y="1011" text-anchor="middle" font-size="8.8" fill="#3c2277">loops back for full re-validation</text>
+
+  <!-- ============ ALLOW -> Tool execution ============ -->
+  <line x1="213" y1="1024" x2="213" y2="1056" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="113" y="1056" width="200" height="52" rx="6" fill="#ffffff" stroke="#1e7d32" stroke-width="1.5"/>
+  <text x="213" y="1078" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#1e5a26">Tool Execution</text>
+  <text x="213" y="1093" text-anchor="middle" font-size="8.6" fill="#333333">the only path that executes</text>
+
+  <!-- BLOCK / ESCALATE straight down (no tool execution) -->
+  <line x1="438" y1="1024" x2="438" y2="1108" stroke="#222222" stroke-width="1.25" stroke-dasharray="5,3"/>
+  <text x="452" y="1060" font-size="8.4" font-style="italic" fill="#555555">no tool</text>
+  <text x="452" y="1071" font-size="8.4" font-style="italic" fill="#555555">execution</text>
+
+  <line x1="663" y1="1024" x2="663" y2="1108" stroke="#222222" stroke-width="1.25" stroke-dasharray="5,3"/>
+  <text x="677" y="1060" font-size="8.4" font-style="italic" fill="#555555">no tool</text>
+  <text x="677" y="1071" font-size="8.4" font-style="italic" fill="#555555">execution</text>
+
+  <!-- REWRITE: loop back (curved) into Defense.decide() for full re-validation -->
+  <path d="M 988 988 C 1060 988, 1060 400, 1010 400 L 1012 400" fill="none" stroke="#5e35b1" stroke-width="1.75" marker-end="url(#arrow)"/>
+  <text x="1069" y="700" text-anchor="middle" font-size="9" font-weight="bold" fill="#5e35b1" transform="rotate(90 1069 700)">repaired candidate re-enters Defense.decide()</text>
+  <text x="1090" y="700" text-anchor="middle" font-size="8.3" font-style="italic" fill="#5e35b1" transform="rotate(90 1090 700)">re-validated through full pipeline before release</text>
+
+  <!-- REWRITE also logged (down, dashed) -->
+  <line x1="888" y1="1024" x2="888" y2="1108" stroke="#5e35b1" stroke-width="1.25" stroke-dasharray="5,3"/>
+
+  <!-- BLOCK/ESCALATE/REWRITE dashed lines terminate at trace top; draw converging connector -->
+  <line x1="213" y1="1108" x2="213" y2="1128" stroke="#222222" stroke-width="1.5"/>
+  <line x1="438" y1="1108" x2="438" y2="1128" stroke="#222222" stroke-width="1.25" stroke-dasharray="5,3"/>
+  <line x1="663" y1="1108" x2="663" y2="1128" stroke="#222222" stroke-width="1.25" stroke-dasharray="5,3"/>
+  <line x1="888" y1="1108" x2="888" y2="1128" stroke="#5e35b1" stroke-width="1.25" stroke-dasharray="5,3"/>
+  <line x1="213" y1="1128" x2="888" y2="1128" stroke="#222222" stroke-width="1.25"/>
+  <line x1="550" y1="1128" x2="550" y2="1150" stroke="#222222" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ Observability trace ============ -->
+  <rect x="150" y="1150" width="800" height="70" rx="6" fill="#f6f6f6" stroke="#333333" stroke-width="1.5"/>
+  <text x="550" y="1174" text-anchor="middle" font-size="13" font-weight="bold" fill="#111111">Observability Trace (JSONL)</text>
+  <text x="550" y="1191" text-anchor="middle" font-size="9.8" fill="#333333">Every decision — ALLOW / BLOCK / ESCALATE / REWRITE — logged with rationale, matched rule(s), and provenance references</text>
+  <text x="550" y="1206" text-anchor="middle" font-size="9" font-style="italic" fill="#555555">REWRITE events are logged both as issued and, after re-validation, with their final resolved decision</text>
+
+  <!-- ============ Legend ============ -->
+  <rect x="90" y="1246" width="920" height="230" rx="6" fill="#ffffff" stroke="#999999" stroke-width="1"/>
+  <text x="112" y="1270" font-size="12" font-weight="bold" fill="#111111">Legend</text>
+
+  <rect x="112" y="1284" width="18" height="14" rx="2" fill="#eef3f9" stroke="#1f3a5f" stroke-width="1.5"/>
+  <text x="136" y="1295" font-size="10" fill="#111111">Layer 1 — Authority Core (base policy kernel, unchanged)</text>
+
+  <rect x="112" y="1306" width="18" height="14" rx="2" fill="#eaf5f2" stroke="#0f6b5c" stroke-width="1.5"/>
+  <text x="136" y="1317" font-size="10" fill="#111111">Layer 2 — sentinel_hybrid additions (narrow blocks + self-revalidating repairs)</text>
+
+  <rect x="112" y="1332" width="16" height="16" rx="3" fill="#e8f5e9" stroke="#1e7d32" stroke-width="2"/>
+  <text x="136" y="1344" font-size="10" fill="#111111">ALLOW — proceed to tool execution</text>
+  <rect x="380" y="1332" width="16" height="16" rx="3" fill="#fdecea" stroke="#c62828" stroke-width="2"/>
+  <text x="404" y="1344" font-size="10" fill="#111111">BLOCK — action rejected, not executed</text>
+  <rect x="112" y="1356" width="16" height="16" rx="3" fill="#fff3e0" stroke="#e6720e" stroke-width="2"/>
+  <text x="136" y="1368" font-size="10" fill="#111111">ESCALATE — held for human confirmation</text>
+  <rect x="380" y="1356" width="16" height="16" rx="3" fill="#eeeafc" stroke="#5e35b1" stroke-width="2"/>
+  <text x="404" y="1368" font-size="10" fill="#111111">REWRITE — repaired, re-validated, then released</text>
+
+  <line x1="112" y1="1390" x2="112" y2="1390" stroke="none"/>
+  <text x="112" y="1394" font-size="9.7" fill="#333333">Single deterministic decision path — no voting ensemble, no second model, no weighted scoring makes the security decision.</text>
+  <text x="112" y="1410" font-size="9.7" fill="#333333">Layer 1 runs first / underneath every request; Layer 2's rules only ever add narrow blocks or safe repairs on top of it.</text>
+  <text x="112" y="1426" font-size="9.7" fill="#333333">REWRITE is not a bypass: every repaired candidate is re-run through Layer 1 + Layer 2 in full before it can be released.</text>
+  <text x="112" y="1442" font-size="9.7" fill="#333333">Dashed lines: no tool execution occurs on this path. Solid lines: the primary decision flow.</text>
+  <text x="112" y="1462" font-size="8.8" font-style="italic" fill="#666666">SENTINEL — IndabaX Tunisia 2026 — shipped defense: sentinel_hybrid (Authority Core + sentinel_hybrid additions)</text>
+
+</svg>
