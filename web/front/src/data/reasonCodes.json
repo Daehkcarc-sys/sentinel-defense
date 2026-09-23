@@ -1,0 +1,86 @@
+{
+  "STRUCTURALLY_AUTHORIZED": [
+    "Default (no mechanism intervened)",
+    "No check found a reason to act: the tool was allowed, no confirmation was missing, and no untrusted, restricted, or inconsistent content was touched."
+  ],
+  "TOOL_NOT_ALLOWED": [
+    "Component A -- hard policy core",
+    "This tool is outside the task's declared allowed-tools set. Authority comes only from that structural fact, never from how convincing the request sounds."
+  ],
+  "SENSITIVE_TO_UNTRUSTED_SINK": [
+    "Component A -- hard policy core",
+    "Sensitive content is addressed to an external, untrusted recipient. Checked by comparing provenance sensitivity tags against the destination, not by reading intent."
+  ],
+  "MISSING_CONFIRMATION": [
+    "Component A -- hard policy core",
+    "A consequential action (one with real-world effect) was proposed with no prior human confirmation on record for this exact action."
+  ],
+  "CONFIRMATION_REQUESTED": [
+    "Component A -- hard policy core",
+    "The agent is explicitly asking a human to confirm a consequential action before it runs."
+  ],
+  "RESTRICTED_DATA_DISCLOSURE": [
+    "Destination-independent RESTRICTED-sensitivity check",
+    "This value's source is tagged RESTRICTED sensitivity, which this benchmark declares as never safely disclosable to ANY destination -- not the user's own reply, not an internal record. Blocks regardless of which tool or action carries it."
+  ],
+  "AUTHORIZATION_ALREADY_CONSUMED": [
+    "Mechanism A -- authorization binding",
+    "This exact action (same tool, same arguments) already executed once earlier this run. A repeat isn't re-authorized just because it's proposed again -- BLOCKs rather than asking again, since a repeat request can't be trusted to get a meaningfully different review."
+  ],
+  "EPISTEMIC_UNVERIFIED_FACT": [
+    "Component C -- evidence fidelity",
+    "This value has no source anywhere in this turn's conversation except untrusted content. It's mentioned, not yet acted on operationally, so this only escalates for review."
+  ],
+  "DECISION_RELEVANT_UNVERIFIED_FACT": [
+    "Mechanism C -- decision-relevance tiering",
+    "Same untrusted-only value as above, but here it operationally parameterizes a consequential action's own arguments, not just a passing mention -- treated as more serious."
+  ],
+  "OBJECT_NOT_DECLARED_IN_REQUEST": [
+    "Mechanism E -- goal-declared object consistency",
+    "This action targets an object (an id like AL-3003, CASE-7002, ...) that the authenticated user's own request never named, and nothing trusted in this turn corroborates it. Derived per-request from the user's own words, never from a standing global rule."
+  ],
+  "PREREQUISITE_NOT_MET_FOR_OBJECT": [
+    "Component B -- object-scoped state (historical; disabled by default)",
+    "A required prior step for this specific object never succeeded. This component was built, tested, and killed after it regressed a real benign scenario -- kept in code only as an honest record of what was tried."
+  ],
+  "ACTION_ALREADY_EXECUTED_FOR_OBJECT": [
+    "Component B -- object-scoped state (historical; disabled by default)",
+    "This tool already succeeded once for this object. See the note above -- disabled by default."
+  ],
+  "REWRITE_FAILED_SELF_VALIDATION": [
+    "Rewrite self-validation",
+    "A safer rewrite was proposed, but re-running the full decision pipeline on the rewrite itself did not independently clear it -- falls back to a safer decision rather than handing the harness an unvalidated rewrite."
+  ],
+  "REWRITE_DEPTH_EXCEEDED": [
+    "Rewrite self-validation",
+    "A rewrite of a rewrite was about to be produced -- capped at one level, so this falls back rather than chaining indefinitely."
+  ],
+  "HYBRID_UNTRUSTED_CONTROL_SELECTOR": [
+    "Selective Hybrid policy -- control integrity",
+    "An operational selector is supported only by untrusted evidence. Authority Core allowed the structurally valid call, but the Hybrid control layer blocks the attacker-only parameter rather than letting observed text establish operational control."
+  ],
+  "HYBRID_UNTRUSTED_OPERATIONAL_EXPANSION": [
+    "Selective Hybrid policy -- task-local object control",
+    "Untrusted content introduced a new operational object and the task-local workflow also classified the write as an object expansion requiring review. The conjunction, not either signal alone, triggers the block."
+  ],
+  "HYBRID_ATTACKER_SELECTED_SENSITIVE_SINK": [
+    "Selective Hybrid policy -- provenance/data-flow conjunction",
+    "Sensitive lineage is being sent to a destination selected only by untrusted content. The Hybrid policy blocks that attacker-selected sink."
+  ],
+  "HYBRID_RESTRICTED_FLOW_REDACTED": [
+    "Safe repair -- restricted-response recovery",
+    "Authority Core rejected a final response containing RESTRICTED lineage. Hybrid removed only the recognized restricted representation and returned the rewrite only after the rewritten response independently passed the full Core + Hybrid policy again."
+  ],
+  "HYBRID_GROUNDED_CONTROL_REPAIR": [
+    "Safe repair -- grounded closed-vocabulary control",
+    "An attacker-only control selector was replaced with the unique different legal value independently grounded in trusted/runtime evidence. The repaired call then passed full Core + Hybrid validation before execution."
+  ],
+  "HYBRID_REWRITE_FAILED_VALIDATION": [
+    "Hybrid rewrite self-validation",
+    "Authority Core proposed a rewrite, but the rewritten action still violated a validated Hybrid invariant. The defense therefore refused to release the rewrite."
+  ],
+  "HYBRID_CONTROL_REPAIR_FAILED_VALIDATION": [
+    "Grounded control repair self-validation",
+    "A candidate grounded control repair was found, but the rewritten request did not clear full validation. The defense falls back to blocking instead of guessing."
+  ]
+}
