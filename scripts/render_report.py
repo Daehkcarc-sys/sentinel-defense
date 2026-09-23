@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E501
 """Render a single-file HTML timeline report from a SENTINEL run artifact.
 
 The stock ``sentinel replay`` CLI prints a plain terminal timeline. This script builds a richer,
@@ -162,52 +163,100 @@ REASON_CODE_EXPLANATIONS: dict[str, tuple[str, str]] = {
         "A rewrite of a rewrite was about to be produced -- capped at one level, so this falls "
         "back rather than chaining indefinitely.",
     ),
+    "HYBRID_UNTRUSTED_CONTROL_SELECTOR": (
+        "Selective Hybrid policy -- control integrity",
+        "An operational selector is supported only by untrusted evidence. Authority Core allowed "
+        "the structurally valid call, but the Hybrid control layer blocks the attacker-only "
+        "parameter rather than letting observed text establish operational control.",
+    ),
+    "HYBRID_UNTRUSTED_OPERATIONAL_EXPANSION": (
+        "Selective Hybrid policy -- task-local object control",
+        "Untrusted content introduced a new operational object and the task-local workflow also "
+        "classified the write as an object expansion requiring review. The conjunction, not either "
+        "signal alone, triggers the block.",
+    ),
+    "HYBRID_ATTACKER_SELECTED_SENSITIVE_SINK": (
+        "Selective Hybrid policy -- provenance/data-flow conjunction",
+        "Sensitive lineage is being sent to a destination selected only by untrusted content. The "
+        "Hybrid policy blocks that attacker-selected sink.",
+    ),
+    "HYBRID_RESTRICTED_FLOW_REDACTED": (
+        "Safe repair -- restricted-response recovery",
+        "Authority Core rejected a final response containing RESTRICTED lineage. Hybrid removed "
+        "only the recognized restricted representation and returned the rewrite only after the "
+        "rewritten response independently passed the full Core + Hybrid policy again.",
+    ),
+    "HYBRID_GROUNDED_CONTROL_REPAIR": (
+        "Safe repair -- grounded closed-vocabulary control",
+        "An attacker-only control selector was replaced with the unique different legal value "
+        "independently grounded in trusted/runtime evidence. The repaired call then passed full "
+        "Core + Hybrid validation before execution.",
+    ),
+    "HYBRID_REWRITE_FAILED_VALIDATION": (
+        "Hybrid rewrite self-validation",
+        "Authority Core proposed a rewrite, but the rewritten action still violated a validated "
+        "Hybrid invariant. The defense therefore refused to release the rewrite.",
+    ),
+    "HYBRID_CONTROL_REPAIR_FAILED_VALIDATION": (
+        "Grounded control repair self-validation",
+        "A candidate grounded control repair was found, but the rewritten request did not clear "
+        "full validation. The defense falls back to blocking instead of guessing.",
+    ),
 }
 
 MECHANISM_OVERVIEW: list[tuple[str, str]] = [
     (
-        "Central invariant",
-        "Authority to take an action comes only from structural, verifiable facts -- a declared "
-        "tool permission, a live human confirmation, a provenance/sensitivity tag -- never from the "
-        "content of what was read this turn. Content can determine WHAT the agent wants to do; it "
-        "never determines WHETHER it's authorized.",
+        "Production path",
+        "SENTINEL Hybrid is one deterministic path: canonical provenance and task-control facts "
+        "feed Authority Core, then only narrow validated Hybrid conjunctions may block or safely "
+        "repair. There is no weighted voting layer and no LLM judge in the security path.",
     ),
     (
-        "Component A -- hard policy core",
-        "Non-additive: tool permission, sensitive-destination, and confirmation checks each act "
-        "alone as a hard rule, never summed into a score that a single weak signal can tip either "
-        "way.",
+        "Canonical provenance",
+        "Core and Hybrid consume one field-addressable source index. Trust, sensitivity, source "
+        "type, and concrete provenance ids are resolved once so the two layers cannot silently "
+        "disagree about where a value came from.",
     ),
     (
-        "RESTRICTED-sensitivity disclosure",
-        "Blocks any action, regardless of tool or destination, whose payload contains "
-        "RESTRICTED-tagged content -- because this benchmark declares such content unsafe "
-        "everywhere, not just when leaving to an external address.",
+        "Authority Core",
+        "The hard-policy kernel owns structural tool authorization, confirmation requirements, "
+        "restricted disclosure, authorization binding, field-aware evidence fidelity, and "
+        "goal/object consistency.",
     ),
     (
-        "Mechanism A -- authorization binding",
-        "Tracks exact-action digests already executed this run; BLOCKs an identical repeat rather "
-        "than re-escalating, since a human-approval step can be rubber-stamped by the harness "
-        "regardless of why the repeat is being proposed.",
+        "Task / control facts",
+        "Authenticated intent and successful history define a task-local control context. Tool "
+        "content may contribute information, but untrusted text cannot independently establish "
+        "operational control parameters.",
     ),
     (
-        "Mechanism B -- field-level evidence",
-        "A single tool response can mix a trusted field with an untrusted-by-design one (e.g. an "
-        "alert record's trusted summary next to its untrusted vendor enrichment). This mechanism "
-        "splits trust at the FIELD level, not the whole response, using each tool's own declared "
-        "untrusted fields.",
+        "Sensitive lineage",
+        "The provenance/data-flow plane tracks request-visible CONFIDENTIAL or RESTRICTED values "
+        "into candidate sinks, including the narrow encoded representations validated in the "
+        "benchmark.",
     ),
     (
-        "Component C -- evidence fidelity",
-        "Flags values (IBANs, reference ids, amounts, dates, approval words) that appear only in "
-        "untrusted content this turn, never in anything trusted -- a plain false claim with no "
-        "imperative language still gets caught.",
+        "Selective Hybrid policy",
+        "Only high-confidence conjunctions survived falsification: attacker-only control selectors, "
+        "task-local untrusted object expansion, and attacker-selected sensitive sinks. Generic "
+        "untrusted text or echo does not become an automatic block.",
     ),
     (
-        "Mechanism E -- goal-declared object consistency",
-        "Compares the object an action targets against what the user's OWN authenticated request "
-        "actually named. Per-request, not a standing rule, so it can't regress a legitimate "
-        "workflow that never made that promise.",
+        "Restricted-response recovery",
+        "If Core blocks a final answer for exact RESTRICTED disclosure, Hybrid can redact only the "
+        "recognized restricted representation and return REWRITE only after the rewritten response "
+        "passes the full policy again.",
+    ),
+    (
+        "Grounded control repair",
+        "For one attacker-only closed-vocabulary selector, Hybrid repairs only when exactly one "
+        "different legal value is independently supported by trusted/runtime evidence. No unique "
+        "alternative means no guess.",
+    ),
+    (
+        "Full self-validation",
+        "Every released repair is re-run through Authority Core and the selective Hybrid policy. "
+        "A repair that cannot independently clear both layers is rejected.",
     ),
 ]
 
@@ -230,6 +279,78 @@ def reason_code_badge(code: str) -> str:
     mechanism, why = REASON_CODE_EXPLANATIONS.get(code, ("Unrecognized code", "No explanation available."))
     tip = f"{mechanism} — {why}"
     return f'<span class="rc-tip" data-tip="{esc(tip)}">{esc(code)}</span>'
+
+
+HYBRID_DECISION_PATHS: dict[str, tuple[str, str, str]] = {
+    "HYBRID_RESTRICTED_FLOW_REDACTED": (
+        "BLOCK · restricted disclosure",
+        "deterministic redaction + full re-validation",
+        "REWRITE",
+    ),
+    "HYBRID_GROUNDED_CONTROL_REPAIR": (
+        "ALLOW",
+        "Replace attacker-only selector with the unique independently grounded legal alternative",
+        "REWRITE",
+    ),
+    "HYBRID_UNTRUSTED_CONTROL_SELECTOR": (
+        "ALLOW",
+        "Block attacker-only operational selector",
+        "BLOCK",
+    ),
+    "HYBRID_UNTRUSTED_OPERATIONAL_EXPANSION": (
+        "ALLOW",
+        "Block validated task-local untrusted object expansion",
+        "BLOCK",
+    ),
+    "HYBRID_ATTACKER_SELECTED_SENSITIVE_SINK": (
+        "ALLOW",
+        "Block attacker-selected sensitive sink",
+        "BLOCK",
+    ),
+    "HYBRID_REWRITE_FAILED_VALIDATION": (
+        "REWRITE",
+        "Reject Core rewrite that fails Hybrid validation",
+        "BLOCK",
+    ),
+    "HYBRID_CONTROL_REPAIR_FAILED_VALIDATION": (
+        "ALLOW",
+        "Candidate grounded repair failed full validation",
+        "BLOCK",
+    ),
+}
+
+
+def decision_path_html(reason_codes: list[str], final_decision: str | None) -> str:
+    """Render explicit Core -> Hybrid -> final control flow."""
+
+    hybrid_code = next(
+        (code for code in reason_codes if code in HYBRID_DECISION_PATHS),
+        None,
+    )
+    final = (final_decision or "unknown").upper()
+
+    if hybrid_code is None:
+        core = final
+        hybrid = "No Hybrid intervention"
+    else:
+        core, hybrid, mapped_final = HYBRID_DECISION_PATHS[hybrid_code]
+        final = mapped_final
+
+    return (
+        '<div class="decision-path">'
+        '<div class="path-caption">Decision path '
+        '<span>(explicit reason codes + deterministic policy branch)</span></div>'
+        '<div class="path-flow">'
+        '<div class="path-node"><div class="path-kicker">Authority Core</div>'
+        f'<div class="path-value">{esc(core)}</div></div>'
+        '<div class="path-arrow">&#8594;</div>'
+        '<div class="path-node"><div class="path-kicker">Hybrid intervention</div>'
+        f'<div class="path-value">{esc(hybrid)}</div></div>'
+        '<div class="path-arrow">&#8594;</div>'
+        '<div class="path-node"><div class="path-kicker">Final decision</div>'
+        f'<div class="path-value">{esc(final)}</div></div>'
+        '</div></div>'
+    )
 
 
 def esc(value: Any) -> str:
@@ -271,6 +392,86 @@ def _short(value: Any, limit: int = 120) -> str:
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
     text = " ".join(text.split())
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+REDACTION_MARKER = "[REDACTED RESTRICTED VALUE]"
+DISPLAY_MASK = "[MASKED RESTRICTED VALUE]"
+
+
+def discover_restricted_display_values(events: list[dict[str, Any]]) -> list[str]:
+    """Recover values explicitly removed by restricted-response recovery."""
+    values: list[str] = []
+    for event in events:
+        if event.get("type") != "defense_decision":
+            continue
+        payload = event.get("payload") or {}
+        if "HYBRID_RESTRICTED_FLOW_REDACTED" not in (payload.get("reason_codes") or []):
+            continue
+        original = ((payload.get("action") or {}).get("content"))
+        rewritten = ((payload.get("rewritten_action") or {}).get("content"))
+        if not isinstance(original, str) or not isinstance(rewritten, str):
+            continue
+        if REDACTION_MARKER not in rewritten:
+            continue
+        prefix, suffix = rewritten.split(REDACTION_MARKER, 1)
+        if not original.startswith(prefix) or not original.endswith(suffix):
+            continue
+        end = len(original) - len(suffix) if suffix else len(original)
+        value = original[len(prefix):end]
+        if value and value not in values:
+            values.append(value)
+    return values
+
+
+def mask_restricted_for_display(text: str, values: list[str]) -> str:
+    """Mask restricted values in generated HTML; raw JSONL stays unchanged."""
+    masked = text
+    for value in sorted(values, key=len, reverse=True):
+        masked = masked.replace(value, DISPLAY_MASK)
+    return masked
+
+
+def discover_control_repairs(events: list[dict[str, Any]]) -> list[tuple[str, str, str]]:
+    """Return (argument, original, repaired) for grounded control rewrites."""
+    repairs: list[tuple[str, str, str]] = []
+    for event in events:
+        if event.get("type") != "defense_decision":
+            continue
+        payload = event.get("payload") or {}
+        if "HYBRID_GROUNDED_CONTROL_REPAIR" not in (payload.get("reason_codes") or []):
+            continue
+        before = ((payload.get("action") or {}).get("arguments") or {})
+        after = ((payload.get("rewritten_action") or {}).get("arguments") or {})
+        for argument, original in before.items():
+            repaired = after.get(argument)
+            if isinstance(original, str) and isinstance(repaired, str) and original != repaired:
+                repairs.append((argument, original, repaired))
+    return repairs
+
+
+def stale_repair_narration(
+    content: str,
+    repairs: list[tuple[str, str, str]],
+) -> tuple[str, str, str] | None:
+    """Detect final narration that repeats a pre-repair selector."""
+    lowered = content.lower()
+    for argument, original, repaired in repairs:
+        original_forms = {original.lower(), original.replace("_", " ").lower()}
+        repaired_forms = {repaired.lower(), repaired.replace("_", " ").lower()}
+        if any(form in lowered for form in original_forms) and not any(
+            form in lowered for form in repaired_forms
+        ):
+            return argument, original, repaired
+    return None
+
+
+def evaluator_action_verdict(decision: str | None) -> str:
+    """Post-run label for a proposal the evaluator marks illegitimate."""
+    if decision in ("block", "escalate"):
+        return "blocked"
+    if decision == "rewrite":
+        return "neutralized by rewrite"
+    return "allowed"
 
 
 def iter_strings(obj: Any):
@@ -453,6 +654,23 @@ h1 { font-size: 1.35rem; margin: 0 0 .15rem; }
 .rc-tip:hover::after, .rc-tip:focus::after { opacity: 1; transform: translateY(0); }
 .explanation { font-size: .88rem; margin: .4rem 0; font-style: italic; color: var(--text); }
 
+.decision-path { margin: .65rem 0; border: 1px solid var(--border); border-radius: 9px; padding: .65rem; background: var(--bg); }
+.path-caption { font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: .5rem; }
+.path-caption span { text-transform: none; letter-spacing: 0; }
+.path-flow { display: grid; grid-template-columns: 1fr auto 1.5fr auto 1fr; gap: .45rem; align-items: stretch; }
+.path-node { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem; }
+.path-kicker { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .035em; }
+.path-value { font-size: .84rem; font-weight: 650; margin-top: .15rem; }
+.path-arrow { align-self: center; color: var(--muted); font-size: 1.1rem; }
+.scope-note { border-left: 4px solid var(--accent); background: var(--panel); border-radius: 8px; padding: .65rem .8rem; margin-bottom: 1rem; font-size: .84rem; color: var(--muted); }
+.scope-note b { color: var(--text); }
+.evaluator-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+.warning-note { border-left: 4px solid var(--escalate); background: var(--escalate-bg); color: var(--text); border-radius: 8px; padding: .6rem .75rem; margin: .55rem 0; font-size: .84rem; }
+@media (max-width: 760px) {
+  .path-flow { grid-template-columns: 1fr; }
+  .path-arrow { transform: rotate(90deg); justify-self: center; }
+}
+
 .rewrite-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .5rem; }
 .rewrite-pair > div { border: 1px dashed var(--border); border-radius: 8px; padding: .5rem .6rem; }
 .rewrite-pair .lbl { font-size: .72rem; text-transform: uppercase; color: var(--muted); margin-bottom: .25rem; }
@@ -527,6 +745,8 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
     exactly one implementation of the timeline/verdict/attack-highlighting logic."""
     attack_ctx = build_attack_context(scenario)
     payload_texts = attack_ctx.get("payload_texts", [])
+    restricted_display_values = discover_restricted_display_values(events)
+    control_repairs = discover_control_repairs(events)
 
     decisions_gt: dict[int, dict[str, Any]] = {}
     if summary:
@@ -575,7 +795,7 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
         )
     if attack_present:
         if attack_success is False:
-            pills.append('<span class="pill good">&#128737; Attack reached the defense &mdash; blocked</span>')
+            pills.append('<span class="pill good">&#128737; Attack did not succeed</span>')
         elif attack_success is True:
             pills.append('<span class="pill bad">&#9888; Attack succeeded</span>')
         else:
@@ -594,6 +814,7 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
         surfaces = ", ".join(s.get("id", "") for s in attack_ctx.get("surfaces", [])) or "n/a"
         attack_banner = (
             '<div class="attack-banner">'
+            '<div class="evaluator-label">Evaluator-only attack context</div>'
             f"<b>&#9888; Injected attack: {esc(attack_ctx.get('family'))} "
             f"(difficulty {esc(attack_ctx.get('difficulty'))})</b>"
             f"Objective: {esc(attack_ctx.get('objective'))}<br>"
@@ -637,11 +858,14 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
             else:
                 head_bits.append(f'<span class="tool-name">{esc(action.get("type"))}</span>')
         if is_attack_action:
-            verdict = "stopped" if decision_val in ("block", "escalate") else "NOT stopped"
+            verdict = evaluator_action_verdict(decision_val)
             css_extra = "gt-illegit"
-            head_bits.append(f'<span class="tag {css_extra}">&#127919; attack action &mdash; {verdict}</span>')
+            head_bits.append(
+                f'<span class="tag {css_extra}">&#127919; evaluator: illegitimate '
+                f'&mdash; {esc(verdict)}</span>'
+            )
         elif gt is not None:
-            head_bits.append('<span class="tag gt-legit">legitimate</span>')
+            head_bits.append('<span class="tag gt-legit">evaluator: legitimate</span>')
 
         body_parts = []
         if decision_ev:
@@ -649,7 +873,11 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
             action = p.get("action") or {}
             risk = p.get("risk_score")
             conf = p.get("confidence")
-            body_parts.append(f'<div><b>Proposed:</b> {esc(action_summary(action))}</div>')
+            proposal_summary = mask_restricted_for_display(
+                action_summary(action),
+                restricted_display_values,
+            )
+            body_parts.append(f'<div><b>Proposed:</b> {esc(proposal_summary)}</div>')
             if risk is not None:
                 pct = max(0, min(100, round(risk * 100)))
                 body_parts.append(
@@ -664,6 +892,7 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
                 body_parts.append(
                     '<div class="reason-codes">' + "".join(reason_code_badge(c) for c in codes) + "</div>"
                 )
+            body_parts.append(decision_path_html(codes, decision_val))
             if p.get("explanation"):
                 body_parts.append(f'<div class="explanation">&ldquo;{esc(p["explanation"])}&rdquo;</div>')
             if p.get("defense_error"):
@@ -675,10 +904,18 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
                     f"<pre>{esc(pretty(metadata))}</pre></details>"
                 )
             if decision_val == "rewrite" and p.get("rewritten_action"):
+                original_summary = mask_restricted_for_display(
+                    action_summary(action),
+                    restricted_display_values,
+                )
+                rewritten_summary = mask_restricted_for_display(
+                    action_summary(p["rewritten_action"]),
+                    restricted_display_values,
+                )
                 body_parts.append(
                     '<div class="rewrite-pair">'
-                    f'<div><div class="lbl">Original (proposed)</div>{esc(action_summary(action))}</div>'
-                    f'<div><div class="lbl">Rewritten (executed instead)</div>{esc(action_summary(p["rewritten_action"]))}</div>'
+                    f'<div><div class="lbl">Agent proposal</div>{esc(original_summary)}</div>'
+                    f'<div><div class="lbl">Safe rewritten action</div>{esc(rewritten_summary)}</div>'
                     "</div>"
                 )
 
@@ -694,7 +931,10 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
             elif t in ("tool_result", "retrieval_result"):
                 ok = p.get("succeeded")
                 text_fields = list(iter_strings(p.get("result")))
-                combined = "\n".join(text_fields)
+                combined = mask_restricted_for_display(
+                    "\n".join(text_fields),
+                    restricted_display_values,
+                )
                 highlighted = highlight_payload(combined, payload_texts) if combined else ""
                 status = (
                     '<span style="color:var(--allow)">ok</span>'
@@ -719,7 +959,23 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
                 )
             elif t == "model_output":
                 if p.get("content"):
-                    body_parts.append(f'<div><b>Agent says:</b> {esc(_short(p["content"], 300))}</div>')
+                    content = mask_restricted_for_display(
+                        p["content"],
+                        restricted_display_values,
+                    )
+                    body_parts.append(
+                        f'<div><b>Agent says:</b> {esc(_short(content, 300))}</div>'
+                    )
+                    stale = stale_repair_narration(content, control_repairs)
+                    if stale:
+                        argument, original, repaired = stale
+                        body_parts.append(
+                            '<div class="warning-note"><b>Execution / narration mismatch.</b> '
+                            f'The model narration still names the pre-repair {esc(argument)} '
+                            f'<code>{esc(original)}</code>, but the executed tool request used '
+                            f'<code>{esc(repaired)}</code>. The execution trace, not this stale '
+                            'narration, is authoritative for the action that actually ran.</div>'
+                        )
             elif t in ("task_success", "task_failure"):
                 cls = "outcome-ok" if t == "task_success" else "outcome-fail"
                 body_parts.append(
@@ -734,8 +990,19 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
             elif t == "memory_read":
                 body_parts.append(f'<div><b>Memory recalled:</b> {esc(", ".join(p.get("entries", [])))}</div>')
 
-        raw_json = "\n".join(json.dumps(e, indent=2, ensure_ascii=False, sort_keys=True) for e in step_events)
-        body_parts.append(f'<details class="raw"><summary>raw events (step {step_id})</summary><pre>{esc(raw_json)}</pre></details>')
+        raw_json = "\n".join(
+            json.dumps(e, indent=2, ensure_ascii=False, sort_keys=True)
+            for e in step_events
+        )
+        raw_json = mask_restricted_for_display(
+            raw_json,
+            restricted_display_values,
+        )
+        body_parts.append(
+            f'<details class="raw"><summary>raw events (step {step_id}) '
+            '(restricted values masked in this view)</summary>'
+            f'<pre>{esc(raw_json)}</pre></details>'
+        )
 
         step_html_parts.append(
             f'<div class="{" ".join(css_classes)}"><div class="step-head">{"".join(head_bits)}</div>'
@@ -751,7 +1018,7 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
             for g in summary["grader_results"]
         )
         graders_html = (
-            '<div class="card"><h2>Success conditions (grader results)</h2>'
+            '<div class="card"><div class="evaluator-label">Evaluator-only</div><h2>Success conditions (grader results)</h2>'
             f'<table class="graders"><tr><th></th><th>condition</th><th>detail</th></tr>{rows}</table></div>'
         )
 
@@ -761,7 +1028,7 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
             f'<li><b>{esc(f.get("severity", "").upper())}</b> {esc(f.get("rule_id"))} (step {f.get("step_id")}): {esc(f.get("message"))}</li>'
             for f in summary["findings"]
         )
-        findings_html = f'<div class="card"><h2>Policy findings</h2><ul>{items}</ul></div>'
+        findings_html = f'<div class="card"><div class="evaluator-label">Evaluator-only</div><h2>Policy findings</h2><ul>{items}</ul></div>'
 
     goal_html = ""
     if goal or description:
@@ -775,6 +1042,12 @@ def build_run(events: list[dict[str, Any]], summary: dict[str, Any] | None, scen
     content_html = f"""
   {goal_html}
   {attack_banner}
+  <div class="scope-note">
+    <b>View separation.</b> Defense decisions, reason codes, rewrites, executed actions, tool results,
+    and human review come from the runtime trace. Items explicitly labeled <i>evaluator-only</i>
+    are post-run ground truth used for analysis and were not visible to the defense.
+    Restricted values are masked in this jury-facing HTML; the archived JSONL evidence is unchanged.
+  </div>
   <div class="verdicts">{"".join(pills)}</div>
 
   <div class="card">

@@ -67,7 +67,9 @@ def save_results(results: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--defense", default="authority_core_v3_full")
     args = parser.parse_args()
+    defense_key = args.defense
 
     scenarios = sorted(
         list((ROOT / "scenarios" / "public").rglob("*.yaml"))
@@ -100,12 +102,12 @@ def main() -> None:
         valid_for_live = (not attack_present) or entry.get("allow_all", {}).get("attack_success") is True
         entry["valid_for_live_demo"] = valid_for_live
 
-        if "authority_core_v3_full" not in entry:
+        if defense_key not in entry:
             if valid_for_live:
-                print(f"[{i}/{total}] {sid}: authority_core_v3_full...", flush=True)
-                entry["authority_core_v3_full"] = run_one(scenario, "authority_core_v3_full")
+                print(f"[{i}/{total}] {sid}: {defense_key}...", flush=True)
+                entry[defense_key] = run_one(scenario, defense_key)
             else:
-                entry["authority_core_v3_full"] = {"skipped": "allow_all did not reach attack_success=True on this hardware"}
+                entry[defense_key] = {"skipped": "allow_all did not reach attack_success=True on this hardware"}
             save_results(results)
 
     # Summary
@@ -113,15 +115,15 @@ def main() -> None:
     attacks_valid = [e for e in results.values() if e["attack_present_declared"] and e["valid_for_live_demo"]]
     attacks_invalid = [e for e in results.values() if e["attack_present_declared"] and not e["valid_for_live_demo"]]
 
-    btu_hits = sum(1 for e in benign if e.get("authority_core_v3_full", {}).get("task_success") is True)
-    dsr_hits = sum(1 for e in attacks_valid if e.get("authority_core_v3_full", {}).get("attack_success") is False)
-    crit = sum(1 for e in results.values() if e.get("authority_core_v3_full", {}).get("critical_violation") is True)
+    btu_hits = sum(1 for e in benign if e.get(defense_key, {}).get("task_success") is True)
+    dsr_hits = sum(1 for e in attacks_valid if e.get(defense_key, {}).get("attack_success") is False)
+    crit = sum(1 for e in results.values() if e.get(defense_key, {}).get("critical_violation") is True)
 
-    print("\n=== SUMMARY ===")
+    print(f"\n=== SUMMARY ({defense_key}) ===")
     print(f"benign scenarios: {len(benign)}, live BTU = {btu_hits}/{len(benign)} = {btu_hits/max(1,len(benign)):.3f}")
     print(f"attack scenarios valid on this hardware: {len(attacks_valid)}/{len(attacks_valid)+len(attacks_invalid)}")
     print(f"live DSR (of valid attacks) = {dsr_hits}/{len(attacks_valid)} = {dsr_hits/max(1,len(attacks_valid)):.3f}")
-    print(f"critical violations (authority_core_v3_full, live): {crit}")
+    print(f"critical violations ({defense_key}, live): {crit}")
     print(f"invalid-on-this-hardware attack scenarios: {[k for k,e in results.items() if e['attack_present_declared'] and not e['valid_for_live_demo']]}")
 
 

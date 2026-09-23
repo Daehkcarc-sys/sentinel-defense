@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E501
 """Render a single, self-contained, interactive HTML dashboard covering MULTIPLE SENTINEL runs,
 grouped into categories a jury can switch between without leaving the page.
 
@@ -26,16 +27,18 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from render_report import (  # noqa: E402
+from render_report import (
     CSS,
     JS,
     build_run,
     esc,
     find_summary,
     load_jsonl,
+    load_scenario,
+    mechanism_glossary_html,
 )
-from render_report import load_scenario as _load_scenario_yaml  # noqa: E402
-from render_report import mechanism_glossary_html  # noqa: E402
+
+_load_scenario_yaml = load_scenario
 
 DASHBOARD_CSS = """
 body.dashboard { display: flex; min-height: 100vh; margin: 0; }
@@ -90,10 +93,10 @@ function showRun(id) {
 def status_dot(run: dict[str, Any]) -> str:
     if run.get("critical_violation"):
         return "bad"
-    if run.get("attack_present") and run.get("attack_success") is False:
-        return "block"
     if run.get("attack_present") and run.get("attack_success") is True:
         return "bad"
+    if run.get("attack_present") and run.get("attack_success") is False:
+        return "allow" if run.get("task_success") is True else "neutral"
     if run.get("task_success") is True:
         return "allow"
     return "neutral"
@@ -102,7 +105,13 @@ def status_dot(run: dict[str, Any]) -> str:
 def status_label(run: dict[str, Any]) -> str:
     bits = []
     if run.get("attack_present"):
-        bits.append("attack blocked" if run.get("attack_success") is False else "attack succeeded" if run.get("attack_success") else "attack scenario")
+        attack_success = run.get("attack_success")
+        if attack_success is False:
+            bits.append("attack did not succeed")
+        elif attack_success is True:
+            bits.append("attack succeeded")
+        else:
+            bits.append("attack scenario")
     else:
         bits.append("benign")
     if run.get("task_success") is False:
@@ -112,13 +121,11 @@ def status_label(run: dict[str, Any]) -> str:
 
 def build_dashboard(manifest: list[dict[str, Any]]) -> str:
     categories: dict[str, list[dict[str, Any]]] = {}
-    run_id_counter = 0
-    for entry in manifest:
+    for run_id_counter, entry in enumerate(manifest, start=1):
         events = load_jsonl(Path(entry["jsonl"]))
         summary = find_summary(Path(entry["jsonl"]))
         scenario = _load_scenario_yaml(Path(entry["yaml"])) if entry.get("yaml") else None
         run = build_run(events, summary, scenario)
-        run_id_counter += 1
         run["dash_id"] = f"r{run_id_counter}"
         run["label"] = entry.get("label") or run["title"]
         cat = entry.get("category") or "Scenarios"
@@ -155,14 +162,14 @@ def build_dashboard(manifest: list[dict[str, Any]]) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SENTINEL &middot; defense dashboard</title>
+<title>SENTINEL Hybrid &middot; observability dashboard</title>
 <style>{CSS}{DASHBOARD_CSS}</style>
 </head>
 <body class="dashboard">
 <nav class="dash-nav">
   <button class="theme-toggle dash-theme-toggle" onclick="toggleTheme()">&#9788;</button>
-  <h1>SENTINEL defense</h1>
-  <div class="sub">authority_core_v3_full &middot; click a scenario to explore it</div>
+  <h1>SENTINEL Hybrid</h1>
+  <div class="sub"><code>sentinel_hybrid</code> &middot; Authority Core + typed provenance + safe repair</div>
   {mechanism_glossary_html()}
   {"".join(nav_html)}
 </nav>
