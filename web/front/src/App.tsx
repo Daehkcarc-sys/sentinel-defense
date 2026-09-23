@@ -5,6 +5,7 @@ import { RunSidebar } from "@/components/RunSidebar"
 import { CorpusSidebar } from "@/components/CorpusSidebar"
 import { BulkSidebar } from "@/components/BulkSidebar"
 import { BulkResults } from "@/components/BulkResults"
+import { VerifiedResults } from "@/components/VerifiedResults"
 import { ArchitectureView } from "@/components/ArchitectureView"
 import { DecisionCard } from "@/components/DecisionCard"
 import { OutcomeBanner } from "@/components/OutcomeBanner"
@@ -243,7 +244,8 @@ function App() {
           />
         )}
         {mode === "bulk" && (
-          <div className="mx-auto max-w-4xl px-6 py-8">
+          <div className="mx-auto flex max-w-4xl flex-col gap-4 px-6 py-8">
+            <VerifiedResults />
             <BulkResults start={bulkStart} rows={bulkRows} done={bulkDone} />
           </div>
         )}
