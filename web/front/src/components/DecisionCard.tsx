@@ -54,8 +54,26 @@ export function DecisionCard({ event, index }: { event: DecisionEvent; index: nu
         <DecisionBadge decision={event.decision} />
       </div>
 
+      {(event.decision === "block" || event.decision === "escalate") && (
+        <div
+          className={`mb-2 rounded-lg border px-3 py-1.5 text-[0.68rem] font-medium ${
+            event.decision === "block"
+              ? "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+          }`}
+        >
+          {event.decision === "block"
+            ? "Blocked — this never executed and nothing below reached the user or any tool."
+            : "Escalated — held for human confirmation; not executed unless approved."}
+        </div>
+      )}
+
       {event.arguments && Object.keys(event.arguments).length > 0 && (
-        <div className="mb-2 rounded-lg bg-muted/60 px-3 py-2 font-mono text-[0.72rem] leading-relaxed text-foreground/80">
+        <div
+          className={`mb-2 rounded-lg px-3 py-2 font-mono text-[0.72rem] leading-relaxed ${
+            event.decision === "block" ? "bg-red-500/5 text-foreground/50 line-through decoration-red-500/30" : "bg-muted/60 text-foreground/80"
+          }`}
+        >
           {Object.entries(event.arguments).map(([k, v]) => {
             const rewrittenValue = event.rewritten_arguments?.[k]
             const changed = event.decision === "rewrite" && rewrittenValue !== undefined && rewrittenValue !== v
@@ -79,7 +97,7 @@ export function DecisionCard({ event, index }: { event: DecisionEvent; index: nu
       {event.content && (
         <p
           className={`mb-1 rounded-lg border px-3 py-2 text-sm leading-relaxed ${
-            event.decision === "rewrite" && event.rewritten_content
+            (event.decision === "rewrite" && event.rewritten_content) || event.decision === "block"
               ? "border-red-500/25 bg-red-500/5 text-foreground/60 line-through decoration-red-500/40"
               : "border-border/70 bg-background/50 text-foreground/90"
           }`}
@@ -87,6 +105,11 @@ export function DecisionCard({ event, index }: { event: DecisionEvent; index: nu
           {event.decision === "rewrite" && event.rewritten_content ? (
             <span className="mr-2 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground no-underline">
               candidate draft
+            </span>
+          ) : null}
+          {event.decision === "block" ? (
+            <span className="mr-2 rounded bg-red-500/15 px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-red-700 no-underline dark:text-red-400">
+              blocked, not delivered
             </span>
           ) : null}
           {event.content}
