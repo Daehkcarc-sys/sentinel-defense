@@ -59,6 +59,7 @@ def _emit(payload: dict[str, Any]) -> None:
 class LiveHooks(runner_mod.EvaluationHooks):
     def on_decision(self, step_id, turn_index, action, decision, latency_ms, error) -> None:  # type: ignore[override]
         super().on_decision(step_id, turn_index, action, decision, latency_ms, error)
+        rewritten = decision.rewritten_action
         _emit(
             {
                 "type": "decision",
@@ -73,6 +74,8 @@ class LiveHooks(runner_mod.EvaluationHooks):
                 "reason_codes": list(decision.reason_codes),
                 "latency_ms": round(latency_ms, 3),
                 "defense_error": error,
+                "rewritten_content": rewritten.content if rewritten else None,
+                "rewritten_arguments": ({k: v for k, v in rewritten.arguments.items()} if rewritten else None),
             }
         )
 
@@ -384,12 +387,15 @@ def corpus_replay(jsonl: str) -> list[dict[str, Any]]:
             raw = json.loads(line)
             if raw.get("type") == "defense_decision":
                 action = raw["payload"].get("action", {})
+                rewritten = raw["payload"].get("rewritten_action")
                 events_by_step[raw["step_id"]] = {
                     "action_type": action.get("type"),
                     "tool": action.get("tool"),
                     "arguments": action.get("arguments", {}),
                     "content": action.get("content"),
                     "defense_error": raw["payload"].get("defense_error"),
+                    "rewritten_content": rewritten.get("content") if rewritten else None,
+                    "rewritten_arguments": rewritten.get("arguments") if rewritten else None,
                 }
 
     out: list[dict[str, Any]] = [
@@ -416,6 +422,8 @@ def corpus_replay(jsonl: str) -> list[dict[str, Any]]:
                 "risk_score": record["risk_score"],
                 "confidence": record["confidence"],
                 "reason_codes": record["reason_codes"],
+                "rewritten_content": extra.get("rewritten_content"),
+                "rewritten_arguments": extra.get("rewritten_arguments"),
                 "latency_ms": record["latency_ms"],
                 "defense_error": record.get("defense_error"),
             }

@@ -56,17 +56,49 @@ export function DecisionCard({ event, index }: { event: DecisionEvent; index: nu
 
       {event.arguments && Object.keys(event.arguments).length > 0 && (
         <div className="mb-2 rounded-lg bg-muted/60 px-3 py-2 font-mono text-[0.72rem] leading-relaxed text-foreground/80">
-          {Object.entries(event.arguments).map(([k, v]) => (
-            <div key={k} className="truncate">
-              <span className="text-muted-foreground">{k}</span>: {String(v)}
-            </div>
-          ))}
+          {Object.entries(event.arguments).map(([k, v]) => {
+            const rewrittenValue = event.rewritten_arguments?.[k]
+            const changed = event.decision === "rewrite" && rewrittenValue !== undefined && rewrittenValue !== v
+            return (
+              <div key={k} className="truncate">
+                <span className="text-muted-foreground">{k}</span>:{" "}
+                {changed ? (
+                  <>
+                    <span className="text-red-600 line-through dark:text-red-400">{String(v)}</span>{" "}
+                    <span className="text-sky-700 dark:text-sky-400">&rarr; {String(rewrittenValue)}</span>
+                  </>
+                ) : (
+                  String(v)
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
       {event.content && (
-        <p className="mb-3 rounded-lg border border-border/70 bg-background/50 px-3 py-2 text-sm leading-relaxed text-foreground/90">
+        <p
+          className={`mb-1 rounded-lg border px-3 py-2 text-sm leading-relaxed ${
+            event.decision === "rewrite" && event.rewritten_content
+              ? "border-red-500/25 bg-red-500/5 text-foreground/60 line-through decoration-red-500/40"
+              : "border-border/70 bg-background/50 text-foreground/90"
+          }`}
+        >
+          {event.decision === "rewrite" && event.rewritten_content ? (
+            <span className="mr-2 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground no-underline">
+              candidate draft
+            </span>
+          ) : null}
           {event.content}
+        </p>
+      )}
+
+      {event.decision === "rewrite" && event.rewritten_content && (
+        <p className="mb-3 rounded-lg border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-sm leading-relaxed text-foreground/90">
+          <span className="mr-2 rounded bg-sky-500/15 px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-400">
+            delivered
+          </span>
+          {event.rewritten_content}
         </p>
       )}
 

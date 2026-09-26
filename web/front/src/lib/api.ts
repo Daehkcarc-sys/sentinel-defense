@@ -20,6 +20,8 @@ export interface DecisionEvent {
   reason_codes: string[]
   latency_ms: number
   defense_error: string | null
+  rewritten_content?: string | null
+  rewritten_arguments?: Record<string, unknown> | null
 }
 
 export interface ToolExecutionEvent {
